@@ -53,8 +53,7 @@ class ObstacleCrossingFragment : Fragment(), PoseLandmarkerHelper.LandmarkerList
         private const val TOTAL_SETS = 8
         private const val SET_REST_TIME_MS = 60000L // 60秒休息
         private const val VISIBILITY_THRESHOLD = 0.5f
-        private const val LIFT_THRESHOLD = 0.08f // 膝蓋抬起的高度閾值 (相對於另一側或初始)
-        private const val MOVEMENT_Z_THRESHOLD = 0.05f // 深度位移閾值，避免原地踏步
+        private const val LIFT_THRESHOLD = 0.08f // 膝蓋抬起的高度閾值
     }
 
     private var _binding: FragmentObstacleCrossingBinding? = null
@@ -75,7 +74,6 @@ class ObstacleCrossingFragment : Fragment(), PoseLandmarkerHelper.LandmarkerList
     private var activeLeg = -1 // 0: Left, 1: Right
     private var isLeftLegCrossed = false
     private var isRightLegCrossed = false
-    private var startZ = 0f
     
     private var isRestingBetweenSets = false
     private var isTestCompleted = false
@@ -174,7 +172,7 @@ class ObstacleCrossingFragment : Fragment(), PoseLandmarkerHelper.LandmarkerList
 
         val landmarks = results.landmarks()[0]
         
-        // 1. 可見度檢查 (肩膀、髖部、膝蓋、腳踝)
+        // 1. 可見度檢查
         val requiredIndices = intArrayOf(11, 12, 23, 24, 25, 26, 27, 28)
         val isVisible = requiredIndices.all { landmarks[it].visibility().orElse(0f) > VISIBILITY_THRESHOLD }
         
@@ -183,44 +181,29 @@ class ObstacleCrossingFragment : Fragment(), PoseLandmarkerHelper.LandmarkerList
             return
         }
 
-        // 2. 跨越動作判定邏輯
-        val leftKneeY = landmarks[25].y()
-        val rightKneeY = landmarks[26].y()
-        val leftHipY = landmarks[23].y()
-        val rightHipY = landmarks[24].y()
-        
-        // 計算膝蓋相對於髖部的高度
-        val leftLift = leftHipY - leftKneeY
-        val rightLift = rightHipY - rightKneeY
+        // 2. 跨越動作判定邏輯 (移除 Z 軸判定)
+        val leftLift = landmarks[23].y() - landmarks[25].y()
+        val rightLift = landmarks[24].y() - landmarks[26].y()
 
         if (!isLifting) {
             if (leftLift > LIFT_THRESHOLD && !isLeftLegCrossed) {
                 isLifting = true
                 activeLeg = 0
-                startZ = landmarks[27].z() // 左腳踝 z
             } else if (rightLift > LIFT_THRESHOLD && !isRightLegCrossed) {
                 isLifting = true
                 activeLeg = 1
-                startZ = landmarks[28].z() // 右腳踝 z
             }
         } else {
-            // 檢查是否放下
             val currentLift = if (activeLeg == 0) leftLift else rightLift
             if (currentLift < LIFT_THRESHOLD / 2) {
-                val endZ = if (activeLeg == 0) landmarks[27].z() else landmarks[28].z()
+                if (activeLeg == 0) isLeftLegCrossed = true else isRightLegCrossed = true
                 
-                // 檢查是否有前後位移 (深度變化)
-                if (abs(endZ - startZ) > MOVEMENT_Z_THRESHOLD) {
-                    if (activeLeg == 0) isLeftLegCrossed = true else isRightLegCrossed = true
-                    
-                    // 雙腳都完成跨越才算一次 Rep
-                    if (isLeftLegCrossed && isRightLegCrossed) {
-                        currentRep++
-                        isLeftLegCrossed = false
-                        isRightLegCrossed = false
-                        if (currentRep >= TOTAL_REPS_PER_SET) {
-                            if (currentSet < TOTAL_SETS) startSetRestTimer() else completeTest()
-                        }
+                if (isLeftLegCrossed && isRightLegCrossed) {
+                    currentRep++
+                    isLeftLegCrossed = false
+                    isRightLegCrossed = false
+                    if (currentRep >= TOTAL_REPS_PER_SET) {
+                        if (currentSet < TOTAL_SETS) startSetRestTimer() else completeTest()
                     }
                 }
                 isLifting = false

@@ -22,7 +22,6 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
 import android.widget.Toast
 import androidx.camera.core.Preview
 import androidx.camera.core.CameraSelector
@@ -55,7 +54,6 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
         private const val TOTAL_SETS = 3
         private const val REST_TIME_MS = 30000L
         private const val CONTACT_THRESHOLD = 0.12f 
-        private const val LINE_THRESHOLD = 0.08f    
         private const val VISIBILITY_THRESHOLD = 0.5f 
         private const val MIN_STEP_DISTANCE = 0.02f  
     }
@@ -77,8 +75,9 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
     private var isResting = false
     private var lastLeadingFoot = -1 
     private var totalStepsAccumulated = 0 // 總累計步數
-    private var totalLineDeviation = 0f
     private var validContactCount = 0
+    private var totalShoulderBalance = 0f
+    private var balanceTicks = 0
     private var restTimer: CountDownTimer? = null
     private var isTestCompleted = false
 
@@ -221,6 +220,11 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
             return
         }
 
+        // 準確率計算：雙肩平衡
+        val shoulderBalance = 1.0f - abs(landmarks[11].y() - landmarks[12].y())
+        totalShoulderBalance += (shoulderBalance * 100f).coerceIn(0f, 100f)
+        balanceTicks++
+
         val leftHeel = landmarks[29]; val rightHeel = landmarks[30]
         val leftToe = landmarks[31]; val rightToe = landmarks[32]
 
@@ -238,7 +242,6 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
             val contactDist = if (currentLeadingFoot == 0) abs(rightToe.y() - leftHeel.y()) else abs(leftToe.y() - rightHeel.y())
 
             if (contactDist < CONTACT_THRESHOLD) validContactCount++
-            totalLineDeviation += abs(((leftHeel.x() + rightHeel.x()) / 2f) - 0.5f)
 
             if (currentStep >= TOTAL_STEPS_PER_SET) {
                 if (currentSet < TOTAL_SETS) startRestPeriod() else completeTest()
@@ -253,10 +256,10 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
 
     private fun calculateAccuracy(): Float {
         if (totalStepsAccumulated == 0) return 0f
-        // 使用累計數據計算 (延續準確率)
-        val lineScore = (1f - (totalLineDeviation / (totalStepsAccumulated * LINE_THRESHOLD))).coerceIn(0f, 1f)
-        val contactScore = (validContactCount.toFloat() / totalStepsAccumulated).coerceIn(0f, 1f)
-        return (lineScore * 0.6f + contactScore * 0.4f) * 100f
+        // 足部接觸得分 (50%) + 肩膀平衡得分 (50%)
+        val contactScore = (validContactCount.toFloat() / totalStepsAccumulated).coerceIn(0f, 1f) * 100f
+        val balanceScore = if (balanceTicks == 0) 0f else totalShoulderBalance / balanceTicks
+        return (contactScore * 0.5f + balanceScore * 0.5f)
     }
 
     private fun startRestPeriod() {
@@ -269,7 +272,6 @@ class CameraFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
             }
             override fun onFinish() {
                 isResting = false; currentSet++; currentStep = 0; lastLeadingFoot = -1;
-                // 注意：這裡不重置 validContactCount 與 totalLineDeviation，以達到延續效果
             }
         }.start()
     }
