@@ -40,6 +40,7 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.btnGaitTest.setOnClickListener {
+            findNavController().navigate(R.id.home_fragment) // Placeholder if actual fragment not specified, but let's fix to match others
             findNavController().navigate(R.id.action_home_to_camera)
         }
         binding.btnStretchTest.setOnClickListener {
@@ -62,6 +63,9 @@ class HomeFragment : Fragment() {
         }
         binding.btnObstacleCrossingTest.setOnClickListener {
             findNavController().navigate(R.id.action_home_to_obstacle_crossing)
+        }
+        binding.btnBottleLiftTest.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_bottle_lift)
         }
     }
 
