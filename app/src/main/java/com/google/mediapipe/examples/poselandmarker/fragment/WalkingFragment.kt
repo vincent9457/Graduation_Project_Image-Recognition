@@ -200,7 +200,7 @@ class WalkingFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
             if (_binding != null && isTrainingStarted) {
                 val results = resultBundle.results.first()
                 processWalkingLogic(results)
-                binding.overlay.setResults(
+                binding.overlay.setPoseResults(
                     results, resultBundle.inputImageHeight, resultBundle.inputImageWidth, RunningMode.LIVE_STREAM
                 )
             }

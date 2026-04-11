@@ -157,7 +157,7 @@ class SimulatedSittingFragment : Fragment(), PoseLandmarkerHelper.LandmarkerList
             if (_binding != null) {
                 val results = resultBundle.results.first()
                 processLogic(results)
-                binding.overlay.setResults(
+                binding.overlay.setPoseResults(
                     results, resultBundle.inputImageHeight, resultBundle.inputImageWidth, RunningMode.LIVE_STREAM
                 )
             }

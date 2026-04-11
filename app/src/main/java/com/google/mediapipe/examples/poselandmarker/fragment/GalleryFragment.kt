@@ -195,7 +195,7 @@ class GalleryFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
                 poseLandmarkerHelper.detectImage(it)?.let { result ->
                     activity?.runOnUiThread {
                         if (_fragmentGalleryBinding != null) {
-                            fragmentGalleryBinding.overlay.setResults(result.results[0], it.height, it.width, RunningMode.IMAGE)
+                            fragmentGalleryBinding.overlay.setPoseResults(result.results[0], it.height, it.width, RunningMode.IMAGE)
                             setUiEnabled(true)
                         }
                     }
@@ -271,7 +271,7 @@ class GalleryFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
                 } else {
                     val poseResult = result.results[resultIndex]
                     processGaitLogic(poseResult)
-                    fragmentGalleryBinding.overlay.setResults(poseResult, result.inputImageHeight, result.inputImageWidth, RunningMode.VIDEO)
+                    fragmentGalleryBinding.overlay.setPoseResults(poseResult, result.inputImageHeight, result.inputImageWidth, RunningMode.VIDEO)
                 }
             }
         }, 0, VIDEO_INTERVAL_MS, TimeUnit.MILLISECONDS)

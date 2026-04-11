@@ -163,7 +163,7 @@ class StretchFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
             if (_binding != null) {
                 val results = resultBundle.results.first()
                 processStretchLogic(results)
-                binding.overlay.setResults(
+                binding.overlay.setPoseResults(
                     results, resultBundle.inputImageHeight, resultBundle.inputImageWidth, RunningMode.LIVE_STREAM
                 )
             }
