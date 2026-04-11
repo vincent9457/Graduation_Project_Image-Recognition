@@ -1,18 +1,3 @@
-/*
- * Copyright 2023 The TensorFlow Authors. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.google.mediapipe.examples.poselandmarker
 
 import android.content.Context
@@ -25,6 +10,9 @@ import androidx.core.content.ContextCompat
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
+import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarkerResult
+import com.google.mediapipe.tasks.vision.objectdetector.ObjectDetectorResult
+import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarker
 import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
@@ -32,17 +20,23 @@ import kotlin.math.min
 class OverlayView(context: Context?, attrs: AttributeSet?) :
     View(context, attrs) {
 
-    private var results: PoseLandmarkerResult? = null
+    // 分別儲存三種模型的結果
+    private var poseResults: PoseLandmarkerResult? = null
+    private var handResults: HandLandmarkerResult? = null
+    private var objectResults: ObjectDetectorResult? = null
+
+    // 畫筆設定
     private var pointPaint = Paint()
     private var linePaint = Paint()
     private var textPaint = Paint()
+    private var boxPaint = Paint() // 物件偵測的框框畫筆
 
     private var scaleFactor: Float = 1f
     private var imageWidth: Int = 1
     private var imageHeight: Int = 1
     private var currentRunningMode: RunningMode = RunningMode.IMAGE
 
-    // Gait & Stretch Info
+    // Gait & Stretch Info (你原本的客製化 UI 變數)
     private var count = 0
     private var setCount = 1
     private var maxSets = 3
@@ -56,10 +50,13 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
     }
 
     fun clear() {
-        results = null
+        poseResults = null
+        handResults = null
+        objectResults = null
         pointPaint.reset()
         linePaint.reset()
         textPaint.reset()
+        boxPaint.reset()
         invalidate()
         initPaints()
     }
@@ -79,11 +76,16 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
         textPaint.strokeWidth = 2f
         textPaint.style = Paint.Style.FILL_AND_STROKE
         textPaint.setShadowLayer(5f, 0f, 0f, Color.BLACK)
+
+        boxPaint.color = Color.RED
+        boxPaint.strokeWidth = 8F
+        boxPaint.style = Paint.Style.STROKE
     }
 
     override fun draw(canvas: Canvas) {
         super.draw(canvas)
 
+        // --- 繪製文字 UI (保留你原本的邏輯) ---
         if (currentRunningMode != RunningMode.IMAGE) {
             val startY = 450f
             val lineSpacing = 100f
@@ -93,14 +95,15 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
             canvas.drawText("狀態: $statusMessage", 50f, startY + lineSpacing * 2, textPaint)
             if (accuracyScore > 0) {
                 canvas.drawText(
-                    String.format(Locale.US, "準確率: %.1f%%", accuracyScore), 
+                    String.format(Locale.US, "準確率: %.1f%%", accuracyScore),
                     50f, startY + lineSpacing * 3, textPaint
                 )
             }
         }
 
-        results?.let { poseLandmarkerResult ->
-            for(landmark in poseLandmarkerResult.landmarks()) {
+        // --- 1. 繪製全身骨架 ---
+        poseResults?.let { result ->
+            for(landmark in result.landmarks()) {
                 for(normalizedLandmark in landmark) {
                     canvas.drawPoint(
                         normalizedLandmark.x() * imageWidth * scaleFactor,
@@ -110,8 +113,9 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
                 }
 
                 PoseLandmarker.POSE_LANDMARKS.forEach {
-                    val start = poseLandmarkerResult.landmarks()[0][it!!.start()]
-                    val end = poseLandmarkerResult.landmarks()[0][it.end()]
+                    // 小優化：直接使用迴圈當前的 landmark，比原本寫死的 [0] 更安全
+                    val start = landmark[it!!.start()]
+                    val end = landmark[it.end()]
                     canvas.drawLine(
                         start.x() * imageWidth * scaleFactor,
                         start.y() * imageHeight * scaleFactor,
@@ -121,31 +125,78 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
                 }
             }
         }
-    }
 
-    fun setResults(
-        poseLandmarkerResults: PoseLandmarkerResult,
-        imageHeight: Int,
-        imageWidth: Int,
-        runningMode: RunningMode = RunningMode.IMAGE
-    ) {
-        results = poseLandmarkerResults
-        this.currentRunningMode = runningMode
-        this.imageHeight = imageHeight
-        this.imageWidth = imageWidth
-
-        scaleFactor = when (runningMode) {
-            RunningMode.IMAGE,
-            RunningMode.VIDEO -> {
-                min(width * 1f / imageWidth, height * 1f / imageHeight)
-            }
-            RunningMode.LIVE_STREAM -> {
-                max(width * 1f / imageWidth, height * 1f / imageHeight)
+        // --- 2. 繪製手部節點 ---
+        handResults?.let { result ->
+            for (landmark in result.landmarks()) {
+                for (normalizedLandmark in landmark) {
+                    canvas.drawPoint(
+                        normalizedLandmark.x() * imageWidth * scaleFactor,
+                        normalizedLandmark.y() * imageHeight * scaleFactor,
+                        pointPaint
+                    )
+                }
+                // 畫手部連線
+                HandLandmarker.HAND_CONNECTIONS.forEach {
+                    val start = landmark[it!!.start()]
+                    val end = landmark[it.end()]
+                    canvas.drawLine(
+                        start.x() * imageWidth * scaleFactor, start.y() * imageHeight * scaleFactor,
+                        end.x() * imageWidth * scaleFactor, end.y() * imageHeight * scaleFactor,
+                        linePaint
+                    )
+                }
             }
         }
-        invalidate()
+
+        // --- 3. 繪製物件偵測外框 ---
+        objectResults?.let { result ->
+            for (detection in result.detections()) {
+                // 新增：檢查這個被偵測到的東西是不是水瓶
+                val isBottle = detection.categories().any { it.categoryName() == "bottle" }
+
+                // 只有確認是水瓶的時候，才畫出紅色的外框
+                if (isBottle) {
+                    val boundingBox = detection.boundingBox()
+                    val left = boundingBox.left * scaleFactor
+                    val top = boundingBox.top * scaleFactor
+                    val right = boundingBox.right * scaleFactor
+                    val bottom = boundingBox.bottom * scaleFactor
+                    canvas.drawRect(left, top, right, bottom, boxPaint)
+                }
+            }
+        }
     }
 
+    // --- 以下為 Setter 方法 ---
+
+    fun setPoseResults(results: PoseLandmarkerResult, imageHeight: Int, imageWidth: Int, runningMode: RunningMode = RunningMode.IMAGE) {
+        poseResults = results
+        updateScale(imageHeight, imageWidth, runningMode)
+    }
+
+    fun setHandResults(results: HandLandmarkerResult, imageHeight: Int, imageWidth: Int, runningMode: RunningMode = RunningMode.IMAGE) {
+        handResults = results
+        updateScale(imageHeight, imageWidth, runningMode)
+    }
+
+    fun setObjectResults(results: ObjectDetectorResult, imageHeight: Int, imageWidth: Int, runningMode: RunningMode = RunningMode.IMAGE) {
+        objectResults = results
+        updateScale(imageHeight, imageWidth, runningMode)
+    }
+
+    private fun updateScale(imageHeight: Int, imageWidth: Int, runningMode: RunningMode) {
+        this.imageHeight = imageHeight
+        this.imageWidth = imageWidth
+        this.currentRunningMode = runningMode
+        scaleFactor = when (runningMode) {
+            RunningMode.IMAGE, RunningMode.VIDEO -> min(width * 1f / imageWidth, height * 1f / imageHeight)
+            RunningMode.LIVE_STREAM -> max(width * 1f / imageWidth, height * 1f / imageHeight)
+        }
+        invalidate() // 觸發重繪
+    }
+
+    // --- 保留你原本的 UI 更新邏輯 ---
     fun updateTestInfo(count: Int, sets: Int, message: String, accuracy: Float, completed: Boolean = false, label: String = "步數", maxSets: Int = 3) {
         this.count = count
         this.setCount = sets

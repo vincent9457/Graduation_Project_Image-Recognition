@@ -20,6 +20,11 @@ import androidx.lifecycle.ViewModel
 /**
  *  This ViewModel is used to store pose landmarker helper settings
  */
+enum class ExerciseMode {
+    LEG_LIFT,      // 抬腿 (使用 Pose)
+    SQUEEZE_BALL,  // 捏球 (使用 Hand + Object)
+    IDLE
+}
 class MainViewModel : ViewModel() {
 
     private var _model = PoseLandmarkerHelper.MODEL_POSE_LANDMARKER_FULL
@@ -61,5 +66,12 @@ class MainViewModel : ViewModel() {
 
     fun setModel(model: Int) {
         _model = model
+    }
+
+    private var _currentExerciseMode = ExerciseMode.IDLE
+    val currentExerciseMode: ExerciseMode get() = _currentExerciseMode
+
+    fun setExerciseMode(mode: ExerciseMode) {
+        _currentExerciseMode = mode
     }
 }
