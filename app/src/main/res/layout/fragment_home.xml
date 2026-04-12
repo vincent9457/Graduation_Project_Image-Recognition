@@ -33,6 +33,15 @@
             app:cornerRadius="12dp" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSqueezeBallTest"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="16dp"
+            android:text="擠壓球 (A-2)(B-3)"
+            android:textSize="18sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnBottleLiftTest"
             android:layout_width="match_parent"
             android:layout_height="60dp"

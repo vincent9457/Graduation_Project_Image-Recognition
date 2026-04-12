@@ -67,6 +67,9 @@ class HomeFragment : Fragment() {
         binding.btnBottleLiftTest.setOnClickListener {
             findNavController().navigate(R.id.action_home_to_bottle_lift)
         }
+        binding.btnSqueezeBallTest.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_squeeze_ball)
+        }
     }
 
     override fun onDestroyView() {

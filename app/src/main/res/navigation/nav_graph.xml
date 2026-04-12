@@ -64,6 +64,15 @@
         <action
             android:id="@+id/action_home_to_bottle_lift"
             app:destination="@id/bottle_lift_fragment" />
+        <action
+            android:id="@+id/action_home_to_squeeze_ball"
+            app:destination="@id/squeeze_ball_fragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/squeeze_ball_fragment"
+        android:name="com.google.mediapipe.examples.poselandmarker.fragment.SqueezeBallFragment"
+        android:label="SqueezeBallFragment">
     </fragment>
 
     <fragment

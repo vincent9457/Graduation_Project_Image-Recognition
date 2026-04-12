@@ -39,6 +39,8 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
     // 左右手獨立追蹤變數
     var isTrackingLeftBottle = false
     var isTrackingRightBottle = false
+    // --- 新增：握力球追蹤變數 ---
+    var isTrackingBall = false
 
     // Gait & Stretch Info
     private var count = 0
@@ -181,7 +183,25 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
                 }
             }
         }
-    } // <-- 就是這裡之前少了一個大括號！
+        // --- 4. 繪製鎖定手掌的「虛擬握力球追蹤框」 ---
+        if (isTrackingBall) {
+            handResults?.let { result ->
+                if (result.landmarks().isNotEmpty()) {
+                    val landmarks = result.landmarks()[0]
+                    val boxSizeHalf = 80f // 握力球比較小，框框設定 80x80
+
+                    // 綁定在手掌中心 (手腕 0 與中指根部 9 的中心點)
+                    val wrist = landmarks[0]
+                    val middleMcp = landmarks[9]
+
+                    val cx = ((wrist.x() + middleMcp.x()) / 2f) * imageWidth * scaleFactor
+                    val cy = ((wrist.y() + middleMcp.y()) / 2f) * imageHeight * scaleFactor
+
+                    canvas.drawRect(cx - boxSizeHalf, cy - boxSizeHalf, cx + boxSizeHalf, cy + boxSizeHalf, boxPaint)
+                }
+            }
+        }
+    }
 
     // --- 以下為 Setter 方法 ---
     fun setPoseResults(results: PoseLandmarkerResult, imageHeight: Int, imageWidth: Int, runningMode: RunningMode = RunningMode.IMAGE) {
