@@ -36,7 +36,11 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
     private var imageHeight: Int = 1
     private var currentRunningMode: RunningMode = RunningMode.IMAGE
 
-    // Gait & Stretch Info (你原本的客製化 UI 變數)
+    // 左右手獨立追蹤變數
+    var isTrackingLeftBottle = false
+    var isTrackingRightBottle = false
+
+    // Gait & Stretch Info
     private var count = 0
     private var setCount = 1
     private var maxSets = 3
@@ -85,7 +89,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
     override fun draw(canvas: Canvas) {
         super.draw(canvas)
 
-        // --- 繪製文字 UI (保留你原本的邏輯) ---
+        // --- 繪製文字 UI ---
         if (currentRunningMode != RunningMode.IMAGE) {
             val startY = 450f
             val lineSpacing = 100f
@@ -113,7 +117,6 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
                 }
 
                 PoseLandmarker.POSE_LANDMARKS.forEach {
-                    // 小優化：直接使用迴圈當前的 landmark，比原本寫死的 [0] 更安全
                     val start = landmark[it!!.start()]
                     val end = landmark[it.end()]
                     canvas.drawLine(
@@ -136,7 +139,6 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
                         pointPaint
                     )
                 }
-                // 畫手部連線
                 HandLandmarker.HAND_CONNECTIONS.forEach {
                     val start = landmark[it!!.start()]
                     val end = landmark[it.end()]
@@ -149,27 +151,39 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
             }
         }
 
-        // --- 3. 繪製物件偵測外框 ---
-        objectResults?.let { result ->
-            for (detection in result.detections()) {
-                // 新增：檢查這個被偵測到的東西是不是水瓶
-                val isBottle = detection.categories().any { it.categoryName() == "bottle" }
+        // --- 3. 繪製鎖定手部的「虛擬水瓶追蹤框」 ---
+        poseResults?.let { result ->
+            if (result.landmarks().isNotEmpty()) {
+                val landmarks = result.landmarks()[0]
+                val boxWidthHalf = 100f
+                val boxHeightHalf = 150f
 
-                // 只有確認是水瓶的時候，才畫出紅色的外框
-                if (isBottle) {
-                    val boundingBox = detection.boundingBox()
-                    val left = boundingBox.left * scaleFactor
-                    val top = boundingBox.top * scaleFactor
-                    val right = boundingBox.right * scaleFactor
-                    val bottom = boundingBox.bottom * scaleFactor
-                    canvas.drawRect(left, top, right, bottom, boxPaint)
+                // 左手水瓶框 (只有當 isTrackingLeftBottle 為 true 時才畫)
+                if (isTrackingLeftBottle) {
+                    val leftWrist = landmarks[15]
+                    val leftIndex = landmarks[19]
+                    if (leftWrist.visibility().orElse(0f) > 0.5f) {
+                        val cx = ((leftWrist.x() + leftIndex.x()) / 2f) * imageWidth * scaleFactor
+                        val cy = ((leftWrist.y() + leftIndex.y()) / 2f) * imageHeight * scaleFactor
+                        canvas.drawRect(cx - boxWidthHalf, cy - boxHeightHalf, cx + boxWidthHalf, cy + boxHeightHalf, boxPaint)
+                    }
+                }
+
+                // 右手水瓶框 (只有當 isTrackingRightBottle 為 true 時才畫)
+                if (isTrackingRightBottle) {
+                    val rightWrist = landmarks[16]
+                    val rightIndex = landmarks[20]
+                    if (rightWrist.visibility().orElse(0f) > 0.5f) {
+                        val cx = ((rightWrist.x() + rightIndex.x()) / 2f) * imageWidth * scaleFactor
+                        val cy = ((rightWrist.y() + rightIndex.y()) / 2f) * imageHeight * scaleFactor
+                        canvas.drawRect(cx - boxWidthHalf, cy - boxHeightHalf, cx + boxWidthHalf, cy + boxHeightHalf, boxPaint)
+                    }
                 }
             }
         }
-    }
+    } // <-- 就是這裡之前少了一個大括號！
 
     // --- 以下為 Setter 方法 ---
-
     fun setPoseResults(results: PoseLandmarkerResult, imageHeight: Int, imageWidth: Int, runningMode: RunningMode = RunningMode.IMAGE) {
         poseResults = results
         updateScale(imageHeight, imageWidth, runningMode)
@@ -193,10 +207,9 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
             RunningMode.IMAGE, RunningMode.VIDEO -> min(width * 1f / imageWidth, height * 1f / imageHeight)
             RunningMode.LIVE_STREAM -> max(width * 1f / imageWidth, height * 1f / imageHeight)
         }
-        invalidate() // 觸發重繪
+        invalidate()
     }
 
-    // --- 保留你原本的 UI 更新邏輯 ---
     fun updateTestInfo(count: Int, sets: Int, message: String, accuracy: Float, completed: Boolean = false, label: String = "步數", maxSets: Int = 3) {
         this.count = count
         this.setCount = sets

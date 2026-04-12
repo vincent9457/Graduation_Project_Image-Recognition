@@ -24,11 +24,11 @@ import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 
 import com.google.mediapipe.examples.poselandmarker.PoseLandmarkerHelper
-import com.google.mediapipe.examples.objectdetection.ObjectDetectorHelper // 新增
+import com.google.mediapipe.examples.objectdetection.ObjectDetectorHelper
 import com.google.mediapipe.examples.poselandmarker.MainViewModel
 import com.google.mediapipe.examples.poselandmarker.R
 import com.google.mediapipe.examples.poselandmarker.databinding.FragmentBottleLiftBinding
-import com.google.mediapipe.framework.image.BitmapImageBuilder // 新增
+import com.google.mediapipe.framework.image.BitmapImageBuilder
 
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
@@ -39,7 +39,6 @@ import java.util.concurrent.Executors
 import kotlin.math.abs
 import kotlin.math.atan2
 
-// 移除原本直接實作的 Listener，改用匿名物件
 class BottleLiftFragment : Fragment() {
 
     companion object {
@@ -55,7 +54,6 @@ class BottleLiftFragment : Fragment() {
     private var _binding: FragmentBottleLiftBinding? = null
     private val binding get() = _binding!!
 
-    // 宣告兩個 Helper
     private lateinit var poseLandmarkerHelper: PoseLandmarkerHelper
     private lateinit var objectDetectorHelper: ObjectDetectorHelper
 
@@ -73,8 +71,12 @@ class BottleLiftFragment : Fragment() {
     private var isRestingBetweenSets = false
     private var isTestCompleted = false
 
-    // 水瓶偵測標記
-    private var isBottleDetected = false
+    // 左右手獨立的水瓶偵測標記 (移除了時間容忍變數，改成終極鎖定法)
+    private var isLeftBottleDetected = false
+    private var isRightBottleDetected = false
+
+    // 儲存最新的水瓶座標框框
+    private var latestBottleBoxes = listOf<android.graphics.RectF>()
 
     private var timer: CountDownTimer? = null
     private var totalAccuracyAccumulated = 0f
@@ -95,7 +97,6 @@ class BottleLiftFragment : Fragment() {
         binding.viewFinder.post { setUpCamera() }
 
         backgroundExecutor.execute {
-            // 初始化骨架模型
             poseLandmarkerHelper = PoseLandmarkerHelper(
                 context = requireContext(),
                 runningMode = RunningMode.LIVE_STREAM,
@@ -103,14 +104,13 @@ class BottleLiftFragment : Fragment() {
                 minPoseTrackingConfidence = viewModel.currentMinPoseTrackingConfidence,
                 minPosePresenceConfidence = viewModel.currentMinPosePresenceConfidence,
                 currentDelegate = viewModel.currentDelegate,
-                poseLandmarkerHelperListener = poseListener // 使用下方定義的 Listener
+                poseLandmarkerHelperListener = poseListener
             )
-            // 初始化物件偵測模型
             objectDetectorHelper = ObjectDetectorHelper(
                 context = requireContext(),
                 runningMode = RunningMode.LIVE_STREAM,
                 currentDelegate = viewModel.currentDelegate,
-                objectDetectorListener = objectListener // 使用下方定義的 Listener
+                objectDetectorListener = objectListener
             )
         }
 
@@ -143,7 +143,6 @@ class BottleLiftFragment : Fragment() {
         preview = Preview.Builder().setTargetAspectRatio(AspectRatio.RATIO_4_3)
             .setTargetRotation(binding.viewFinder.display.rotation).build()
 
-        // 替換成共用影像處理邏輯
         imageAnalyzer = ImageAnalysis.Builder().setTargetAspectRatio(AspectRatio.RATIO_4_3)
             .setTargetRotation(binding.viewFinder.display.rotation)
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
@@ -157,7 +156,6 @@ class BottleLiftFragment : Fragment() {
         } catch (exc: Exception) { Log.e(TAG, "Use case binding failed", exc) }
     }
 
-    // --- 影像分配中心 ---
     @SuppressLint("UnsafeOptInUsageError")
     private fun processImageProxy(imageProxy: ImageProxy) {
         val frameTime = SystemClock.uptimeMillis()
@@ -173,7 +171,6 @@ class BottleLiftFragment : Fragment() {
         }
         val rotatedBitmap = Bitmap.createBitmap(bitmapBuffer, 0, 0, bitmapBuffer.width, bitmapBuffer.height, matrix, true)
 
-        // 關鍵修復：建立兩個獨立的 MPImage 實例，避免底層記憶體互相搶奪被提早關閉
         val mpImageForPose = BitmapImageBuilder(rotatedBitmap).build()
         val mpImageForObject = BitmapImageBuilder(rotatedBitmap).build()
 
@@ -185,41 +182,27 @@ class BottleLiftFragment : Fragment() {
         }
     }
 
-    // --- Object Detector Listener (處理水瓶偵測) ---
+    // --- Object Detector Listener (單純記錄所有水瓶的座標框) ---
     private val objectListener = object : ObjectDetectorHelper.DetectorListener {
         override fun onError(error: String, errorCode: Int) {
             showErrorMsg(error)
         }
 
         override fun onResults(resultBundle: ObjectDetectorHelper.ResultBundle) {
-            activity?.runOnUiThread {
-                if (_binding != null) {
-                    val results = resultBundle.results.firstOrNull() ?: return@runOnUiThread
+            val results = resultBundle.results.firstOrNull() ?: return
 
-                    // 尋找畫面中是否有 "bottle"
-                    var foundBottle = false
-                    for (detection in results.detections()) {
-                        for (category in detection.categories()) {
-                            // COCO 資料集中的水瓶標籤為 "bottle"
-                            if (category.categoryName() == "bottle" && category.score() > 0.5f) {
-                                foundBottle = true
-                                break
-                            }
-                        }
-                        if (foundBottle) break
-                    }
-                    isBottleDetected = foundBottle
-
-                    // 畫出物件紅框
-                    binding.overlay.setObjectResults(
-                        results, resultBundle.inputImageHeight, resultBundle.inputImageWidth, RunningMode.LIVE_STREAM
-                    )
+            val boxes = mutableListOf<android.graphics.RectF>()
+            for (detection in results.detections()) {
+                if (detection.categories().any { it.categoryName() == "bottle" && it.score() > 0.05f }) {
+                    boxes.add(detection.boundingBox())
                 }
             }
+            // 更新最新的水瓶座標列表 (使用 toList 確保執行緒安全)
+            latestBottleBoxes = boxes.toList()
         }
     }
 
-    // --- Pose Landmarker Listener (處理骨架與運動邏輯) ---
+    // --- Pose Landmarker Listener (結合水瓶座標進行空間邏輯運算) ---
     private val poseListener = object : PoseLandmarkerHelper.LandmarkerListener {
         override fun onError(error: String, errorCode: Int) {
             showErrorMsg(error)
@@ -229,8 +212,10 @@ class BottleLiftFragment : Fragment() {
             activity?.runOnUiThread {
                 if (_binding != null) {
                     val results = resultBundle.results.firstOrNull() ?: return@runOnUiThread
-                    processLogic(results)
-                    // 畫出骨架
+
+                    // 將影像的真實寬高傳入，以利座標比對
+                    processLogic(results, resultBundle.inputImageWidth, resultBundle.inputImageHeight)
+
                     binding.overlay.setPoseResults(
                         results, resultBundle.inputImageHeight, resultBundle.inputImageWidth, RunningMode.LIVE_STREAM
                     )
@@ -239,7 +224,7 @@ class BottleLiftFragment : Fragment() {
         }
     }
 
-    private fun processLogic(results: PoseLandmarkerResult) {
+    private fun processLogic(results: PoseLandmarkerResult, imageWidth: Int, imageHeight: Int) {
         if (isTestCompleted || results.landmarks().isEmpty() || isRestingBetweenSets) return
 
         val landmarks = results.landmarks()[0]
@@ -248,22 +233,72 @@ class BottleLiftFragment : Fragment() {
         val requiredIndices = intArrayOf(11, 12, 13, 14, 15, 16)
         val isVisible = requiredIndices.all { landmarks[it].visibility().orElse(0f) > VISIBILITY_THRESHOLD }
 
+        // --- 將當前的追蹤狀態傳遞給 OverlayView ---
+        binding.overlay.isTrackingLeftBottle = isLeftBottleDetected
+        binding.overlay.isTrackingRightBottle = isRightBottleDetected
+
         if (!isVisible) {
+            // 【終極防呆重置】只要身體或手部離開了鏡頭，就強制把所有持有狀態歸零！
+            // 這樣長輩下次進來時，系統才會要求他必須再次拿出水瓶讓 AI 確認。
+            isLeftBottleDetected = false
+            isRightBottleDetected = false
+            binding.overlay.isTrackingLeftBottle = false
+            binding.overlay.isTrackingRightBottle = false
+
             binding.overlay.updateTestInfo(currentRep, currentSet, "請將上半身放入畫面", calculateAvgAccuracy(), isTestCompleted, "次數")
             return
         }
 
-        // 2. 水瓶檢查 (這就是我們剛剛透過 Object Detector 拿到的結果)
-        if (!isBottleDetected) {
-            binding.overlay.updateTestInfo(currentRep, currentSet, "請拿好水瓶", calculateAvgAccuracy(), isTestCompleted, "次數")
+        // --- 2. 空間座標比對：哪隻手拿了水瓶？ ---
+        var currentLeftFound = false
+        var currentRightFound = false
+
+        // 算出左右手腕在影像上的真實像素座標
+        val leftWristX = landmarks[15].x() * imageWidth
+        val leftWristY = landmarks[15].y() * imageHeight
+        val rightWristX = landmarks[16].x() * imageWidth
+        val rightWristY = landmarks[16].y() * imageHeight
+
+        // 給予畫面 15% 的範圍容忍度，只要手腕在這個擴大的框框內就算拿到水瓶
+        val toleranceX = imageWidth * 0.15f
+        val toleranceY = imageHeight * 0.15f
+
+        for (box in latestBottleBoxes) {
+            if (leftWristX >= box.left - toleranceX && leftWristX <= box.right + toleranceX &&
+                leftWristY >= box.top - toleranceY && leftWristY <= box.bottom + toleranceY) {
+                currentLeftFound = true
+            }
+            if (rightWristX >= box.left - toleranceX && rightWristX <= box.right + toleranceX &&
+                rightWristY >= box.top - toleranceY && rightWristY <= box.bottom + toleranceY) {
+                currentRightFound = true
+            }
+        }
+
+        // --- 3. 終極鎖定法 (Sticky Lock) ---
+        // 只要 AI 在框內看到了水瓶，我們就把變數設為 true。
+        // 如果沒看到，我們就「什麼都不做」（也就是維持原本的 true），讓它死死鎖定在手上！
+        if (currentLeftFound) {
+            isLeftBottleDetected = true
+        }
+        if (currentRightFound) {
+            isRightBottleDetected = true
+        }
+
+        // 再次將更新後的追蹤狀態傳遞給 OverlayView
+        binding.overlay.isTrackingLeftBottle = isLeftBottleDetected
+        binding.overlay.isTrackingRightBottle = isRightBottleDetected
+
+        // 4. 雙手水瓶檢查 (確保兩手都有水瓶才能繼續運動)
+        if (!isLeftBottleDetected || !isRightBottleDetected) {
+            binding.overlay.updateTestInfo(currentRep, currentSet, "請雙手拿好水瓶", calculateAvgAccuracy(), isTestCompleted, "次數")
             return
         }
 
-        // 3. 角度計算
+        // 5. 角度計算
         val leftAngle = calculateAngle(landmarks[11], landmarks[13], landmarks[15])
         val rightAngle = calculateAngle(landmarks[12], landmarks[14], landmarks[16])
 
-        // 4. 舉水瓶動作判定
+        // 6. 舉水瓶動作判定
         if (!isLifting) {
             if (leftAngle < LIFT_ANGLE_THRESHOLD && rightAngle < LIFT_ANGLE_THRESHOLD) {
                 isLifting = true
@@ -278,7 +313,7 @@ class BottleLiftFragment : Fragment() {
             }
         }
 
-        // 5. 準確率計算
+        // 7. 準確率計算
         val symmetry = 1.0f - abs(leftAngle - rightAngle).toFloat() / 180f
         val liftScore = if (isLifting) {
             val leftWristShoulderDiff = abs(landmarks[15].y() - landmarks[11].y())
@@ -341,7 +376,6 @@ class BottleLiftFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        // 當 App 從背景回到前景時，重新喚醒兩個模型
         backgroundExecutor.execute {
             if(this::poseLandmarkerHelper.isInitialized && poseLandmarkerHelper.isClose()) {
                 poseLandmarkerHelper.setupPoseLandmarker()
