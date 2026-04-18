@@ -105,11 +105,65 @@
             app:cornerRadius="12dp" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnWringTowelTest"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="16dp"
+            android:text="扭毛巾 (C-2)(D-2)"
+            android:textSize="18sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnObstacleCrossingTest"
             android:layout_width="match_parent"
             android:layout_height="60dp"
             android:layout_marginBottom="16dp"
             android:text="跨越障礙物 (C-5)"
+            android:textSize="18sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnBalanceTest"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="16dp"
+            android:text="平衡測試"
+            android:textSize="18sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnGaitSpeed4mTest"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="16dp"
+            android:text="步行速度測試-4m"
+            android:textSize="18sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnFiveTimesChairStandTest"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="16dp"
+            android:text="從椅子起身測試"
+            android:textSize="18sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnTimedUpAndGoTest"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="16dp"
+            android:text="計時起身行走測試"
+            android:textSize="18sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnGaitSpeed6mTest"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="16dp"
+            android:text="步行速度測試-6m"
             android:textSize="18sp"
             app:cornerRadius="12dp" />
 

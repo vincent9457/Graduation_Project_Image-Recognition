@@ -67,6 +67,24 @@
         <action
             android:id="@+id/action_home_to_squeeze_ball"
             app:destination="@id/squeeze_ball_fragment" />
+        <action
+            android:id="@+id/action_home_to_wring_towel"
+            app:destination="@id/wring_towel_fragment" />
+        <action
+            android:id="@+id/action_home_to_balance_test"
+            app:destination="@id/balance_test_fragment" />
+        <action
+            android:id="@+id/action_home_to_gait_speed_4m"
+            app:destination="@id/gait_speed_4m_fragment" />
+        <action
+            android:id="@+id/action_home_to_five_times_chair_stand"
+            app:destination="@id/five_times_chair_stand_fragment" />
+        <action
+            android:id="@+id/action_home_to_timed_up_and_go"
+            app:destination="@id/timed_up_and_go_fragment" />
+        <action
+            android:id="@+id/action_home_to_gait_speed_6m"
+            app:destination="@id/gait_speed_6m_fragment" />
     </fragment>
 
     <fragment
@@ -74,6 +92,37 @@
         android:name="com.google.mediapipe.examples.poselandmarker.fragment.SqueezeBallFragment"
         android:label="SqueezeBallFragment">
     </fragment>
+
+    <fragment
+        android:id="@+id/wring_towel_fragment"
+        android:name="com.google.mediapipe.examples.poselandmarker.fragment.WringTowelFragment"
+        android:label="WringTowelFragment">
+    </fragment>
+
+    <fragment
+        android:id="@+id/balance_test_fragment"
+        android:name="com.google.mediapipe.examples.poselandmarker.fragment.BalanceTestFragment"
+        android:label="BalanceTestFragment" />
+
+    <fragment
+        android:id="@+id/gait_speed_4m_fragment"
+        android:name="com.google.mediapipe.examples.poselandmarker.fragment.GaitSpeed4mFragment"
+        android:label="GaitSpeed4mFragment" />
+
+    <fragment
+        android:id="@+id/five_times_chair_stand_fragment"
+        android:name="com.google.mediapipe.examples.poselandmarker.fragment.FiveTimesChairStandFragment"
+        android:label="FiveTimesChairStandFragment" />
+
+    <fragment
+        android:id="@+id/timed_up_and_go_fragment"
+        android:name="com.google.mediapipe.examples.poselandmarker.fragment.TimedUpAndGoFragment"
+        android:label="TimedUpAndGoFragment" />
+
+    <fragment
+        android:id="@+id/gait_speed_6m_fragment"
+        android:name="com.google.mediapipe.examples.poselandmarker.fragment.GaitSpeed6mFragment"
+        android:label="GaitSpeed6mFragment" />
 
     <fragment
         android:id="@+id/camera_fragment"

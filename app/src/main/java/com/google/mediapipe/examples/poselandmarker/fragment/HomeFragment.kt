@@ -70,6 +70,24 @@ class HomeFragment : Fragment() {
         binding.btnSqueezeBallTest.setOnClickListener {
             findNavController().navigate(R.id.action_home_to_squeeze_ball)
         }
+        binding.btnWringTowelTest.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_wring_towel)
+        }
+        binding.btnBalanceTest.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_balance_test)
+        }
+        binding.btnGaitSpeed4mTest.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_gait_speed_4m)
+        }
+        binding.btnFiveTimesChairStandTest.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_five_times_chair_stand)
+        }
+        binding.btnTimedUpAndGoTest.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_timed_up_and_go)
+        }
+        binding.btnGaitSpeed6mTest.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_gait_speed_6m)
+        }
     }
 
     override fun onDestroyView() {
