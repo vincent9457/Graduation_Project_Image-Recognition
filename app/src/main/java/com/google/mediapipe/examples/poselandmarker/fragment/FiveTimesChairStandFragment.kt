@@ -143,7 +143,8 @@ class FiveTimesChairStandFragment : Fragment(), PoseLandmarkerHelper.LandmarkerL
                     label = "起身次數",
                     maxSets = 5,
                     setLabel = "起身次數",
-                    time = String.format(Locale.US, "%.2f", currentSeconds)
+                    time = String.format(Locale.US, "%.2f", currentSeconds),
+                    showAccuracy = false
                 )
             }
         }

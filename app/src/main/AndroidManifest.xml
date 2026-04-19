@@ -32,7 +32,10 @@
         android:taskAffinity=""
         android:theme="@style/AppTheme"
         tools:ignore="AllowBackup">
-
+        <meta-data
+            android:name="com.google.ar.core"
+            android:value="required"
+            tools:replace="android:value" />
         <activity
             android:name=".MainActivity"
             android:exported="true">

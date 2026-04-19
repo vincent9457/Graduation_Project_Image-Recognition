@@ -53,7 +53,9 @@ class BalanceTestFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener 
     private enum class TestStage { SIDE_BY_SIDE, SEMI_TANDEM, TANDEM, COMPLETED }
     private var currentStage = TestStage.SIDE_BY_SIDE
     private var isTesting = false
+    private var isPreparing = false
     private var timer: CountDownTimer? = null
+    private var preparationTimer: CountDownTimer? = null
     private var initialAnklePos: Pair<Float, Float>? = null
     private val MOVEMENT_THRESHOLD = 0.05f
     private var currentSeconds = 0f
@@ -82,7 +84,7 @@ class BalanceTestFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener 
             if (currentStage == TestStage.COMPLETED) {
                 findNavController().navigateUp()
             } else {
-                startCountdown()
+                startInitialPreparation()
             }
         }
 
@@ -143,42 +145,81 @@ class BalanceTestFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener 
             checkBalance(results)
             binding.overlay.setPoseResults(results, resultBundle.inputImageHeight, resultBundle.inputImageWidth, RunningMode.LIVE_STREAM)
             
-            // 更新 OverlayView 的左上方資訊
+            // 更新 OverlayView 的 leftTop 資訊
             val stageName = when(currentStage) {
-                TestStage.SIDE_BY_SIDE -> "並排站立"
-                TestStage.SEMI_TANDEM -> "半並排站立"
-                TestStage.TANDEM -> "直線站立"
+                TestStage.SIDE_BY_SIDE -> "並排站立 1/3"
+                TestStage.SEMI_TANDEM -> "半並排站立 2/3"
+                TestStage.TANDEM -> "直線站立 3/3"
                 else -> "測試完成"
             }
             binding.overlay.updateTestInfo(
                 count = 0,
                 sets = 0,
-                message = if (isTesting) "測試中" else "準備中",
+                message = binding.tvStatus.text.toString(),
                 accuracy = 0f,
                 label = "", 
                 maxSets = -1, // 不顯示組數/次數
                 setLabel = "階段: $stageName",
-                time = String.format(Locale.US, "%.2f", currentSeconds)
+                time = String.format(Locale.US, "%.2f", currentSeconds),
+                showAccuracy = false
             )
         }
     }
 
     private fun checkBalance(results: PoseLandmarkerResult) {
+        if (isPreparing) return // 準備中不進行偵測
+
         val landmarks = results.landmarks().firstOrNull() ?: return
+
+        // 1. 檢查必要節點可見度 (雙肩: 11, 12; 雙腳踝: 27, 28)
+        val requiredIndices = intArrayOf(11, 12, 27, 28)
+        val isVisible = requiredIndices.all { landmarks[it].visibility().orElse(0f) > 0.5f }
+
+        if (!isVisible) {
+            binding.tvStatus.text = "請全身放入畫面(偵測肩膀雙腳)"
+            // 如果正在測試中卻偵測不到，停止計時
+            if (isTesting) {
+                timer?.cancel()
+                isTesting = false
+                binding.tvTimer.text = "偵測中斷"
+            }
+            if (isPreparing) {
+                preparationTimer?.cancel()
+                isPreparing = false
+            }
+            return
+        }
+
         // 腳踝節點: 27, 28
         val leftAnkle = landmarks[27]
         val rightAnkle = landmarks[28]
+        val dx = abs(leftAnkle.x() - rightAnkle.x())
+        val dy = abs(leftAnkle.y() - rightAnkle.y())
 
         if (!isTesting) {
-            // 提示使用者準備好姿勢
+            var isCorrectStance = false
             val msg = when(currentStage) {
-                TestStage.SIDE_BY_SIDE -> "請雙腳並排站立"
-                TestStage.SEMI_TANDEM -> "請雙腳半並排站立"
-                TestStage.TANDEM -> "請雙腳直線站立"
+                TestStage.SIDE_BY_SIDE -> {
+                    isCorrectStance = dx < 0.12f && dy < 0.05f
+                    "請並排站立"
+                }
+                TestStage.SEMI_TANDEM -> {
+                    isCorrectStance = dy >= 0.04f
+                    "請半並排站立"
+                }
+                TestStage.TANDEM -> {
+                    isCorrectStance = dx < 0.05f && dy >= 0.05f
+                    "請直線站立"
+                }
                 else -> ""
             }
-            binding.tvStatus.text = msg
-            if (!binding.dialogLayout.isShown) startCountdown()
+
+            if (isCorrectStance) {
+                binding.tvStatus.text = "姿勢正確，開始測試"
+                if (!binding.dialogLayout.isShown) startCountdown()
+            } else {
+                binding.tvStatus.text = msg
+            }
             return
         }
 
@@ -190,6 +231,21 @@ class BalanceTestFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener 
         if (abs(currentAnklePos - initialAnklePos!!.first) > MOVEMENT_THRESHOLD) {
             failTest()
         }
+    }
+
+    private fun startInitialPreparation() {
+        if (isPreparing || isTesting) return
+        isPreparing = true
+        preparationTimer?.cancel()
+        preparationTimer = object : CountDownTimer(3000, 1000) {
+            override fun onTick(ms: Long) {
+                val sec = (ms / 1000) + 1
+                binding.tvStatus.text = "請回定位，準備倒數 $sec..."
+            }
+            override fun onFinish() {
+                isPreparing = false
+            }
+        }.start()
     }
 
     private fun startCountdown() {
@@ -249,6 +305,7 @@ class BalanceTestFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener 
         _binding = null
         super.onDestroyView()
         timer?.cancel()
+        preparationTimer?.cancel()
         backgroundExecutor.shutdown()
     }
 }

@@ -83,7 +83,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:text="進行第二次測試" />
+                android:text="確定" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 

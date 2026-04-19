@@ -198,6 +198,37 @@ class PoseLandmarkerHelper(
         detectAsync(mpImage, frameTime)
     }
 
+    fun detectLiveStream(
+        bitmap: Bitmap,
+        isFrontCamera: Boolean,
+        timestamp: Long // 從 ARFrame 傳入的正確時間戳
+    ) {
+        if (runningMode != RunningMode.LIVE_STREAM) {
+            throw IllegalArgumentException(
+                "Attempting to call detectLiveStream while not using RunningMode.LIVE_STREAM"
+            )
+        }
+
+        // 因為 ARCore 的影像可能需要根據設備方向旋轉，這裡可以做旋轉處理
+        // 但通常 ARCore 給出的 Bitmap 已經是正確方向，若方向不對再調整 Matrix
+        val matrix = Matrix().apply {
+            if (isFrontCamera) {
+                postScale(-1f, 1f, bitmap.width.toFloat(), bitmap.height.toFloat())
+            }
+        }
+
+        val rotatedBitmap = Bitmap.createBitmap(
+            bitmap, 0, 0, bitmap.width, bitmap.height,
+            matrix, true
+        )
+
+        // 將 Bitmap 轉換為 MediaPipe 的 MPImage
+        val mpImage = BitmapImageBuilder(rotatedBitmap).build()
+
+        // 呼叫非同步偵測
+        detectAsync(mpImage, timestamp)
+    }
+
     // Run pose landmark using MediaPipe Pose Landmarker API
     @VisibleForTesting
     fun detectAsync(mpImage: MPImage, frameTime: Long) {

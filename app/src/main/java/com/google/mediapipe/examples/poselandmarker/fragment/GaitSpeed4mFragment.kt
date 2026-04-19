@@ -26,10 +26,9 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.max
 
-// 定義測試狀態
-enum class AutoTestState {
+enum class AutoTestState4m {
     INPUT_HEIGHT,
-    WAITING_FOR_4M,
+    WAITING_FOR_DISTANCE,
     COUNTDOWN,
     TESTING,
     FINISHED
@@ -50,8 +49,7 @@ class GaitSpeed4mFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener 
     private var bestScore = 0
     private var currentSeconds = 0f
 
-    // 自動化狀態變數
-    private var currentState = AutoTestState.INPUT_HEIGHT
+    private var currentState = AutoTestState4m.INPUT_HEIGHT
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentGaitSpeed4mBinding.inflate(inflater, container, false)
@@ -71,7 +69,6 @@ class GaitSpeed4mFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener 
             )
         }
 
-        // 一進入畫面就要求輸入身高
         showHeightDialog()
 
         binding.btnReset.setOnClickListener {
@@ -84,7 +81,7 @@ class GaitSpeed4mFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener 
 
         binding.btnDialogNext.setOnClickListener {
             binding.dialogLayout.visibility = View.GONE
-            if (testCount >= 3 || (binding.btnDialogNext.text == "結束")) {
+            if (testCount >= 3 || binding.btnDialogNext.text == "結束") {
                 findNavController().navigateUp()
             } else {
                 resetForNextTrial(false)
@@ -101,31 +98,27 @@ class GaitSpeed4mFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener 
         }
     }
 
-    // 彈出對話框讓使用者輸入身高
     private fun showHeightDialog() {
-        currentState = AutoTestState.INPUT_HEIGHT
+        currentState = AutoTestState4m.INPUT_HEIGHT
         val input = EditText(requireContext())
         input.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
         input.hint = "例如: 165"
 
         AlertDialog.Builder(requireContext())
             .setTitle("準備開始")
-            .setMessage("請輸入受測者的身高 (公分)，這將用於精準測距：")
+            .setMessage("請輸入受測者的身高 (公分)：")
             .setView(input)
             .setCancelable(false)
             .setPositiveButton("確定") { _, _ ->
                 val heightStr = input.text.toString()
-                val height = heightStr.toFloatOrNull() ?: 160f // 預設 160cm
-                binding.overlay.userHeightCm = height
+                binding.overlay.userHeightCm = heightStr.toFloatOrNull() ?: 160f
 
-                currentState = AutoTestState.WAITING_FOR_4M
+                currentState = AutoTestState4m.WAITING_FOR_DISTANCE
                 binding.tvCenterStatus.text = "請退後至\n大於 4 公尺處"
                 binding.tvCenterStatus.textSize = 50f
             }
             .show()
     }
-
-    // ... (保留原本的 setUpCamera, bindCameraUseCases, processImageProxy) ...
 
     private fun setUpCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
@@ -156,22 +149,17 @@ class GaitSpeed4mFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener 
         activity?.runOnUiThread {
             if (_binding != null) {
                 val results = resultBundle.results.firstOrNull() ?: return@runOnUiThread
-
                 val currentDistance = binding.overlay.currentDistance
 
-                // === 自動化流程判斷 ===
                 when (currentState) {
-                    AutoTestState.WAITING_FOR_4M -> {
-                        // 判斷是否已經退後超過 4 公尺
+                    AutoTestState4m.WAITING_FOR_DISTANCE -> {
                         if (currentDistance >= 4.0f) {
-                            currentState = AutoTestState.COUNTDOWN
+                            currentState = AutoTestState4m.COUNTDOWN
                             startCountdownSequence()
                         }
                     }
-                    AutoTestState.TESTING -> {
+                    AutoTestState4m.TESTING -> {
                         currentSeconds = (SystemClock.elapsedRealtime() - startTime) / 1000f
-
-                        // 判斷是否已經走到目標距離 (例如從 4.2m 走到 0.2m = 走了 4m)
                         if (currentDistance <= binding.overlay.targetDistance && currentDistance > 0) {
                             finishTrial()
                         }
@@ -182,8 +170,8 @@ class GaitSpeed4mFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener 
                 binding.overlay.setPoseResults(results, resultBundle.inputImageHeight, resultBundle.inputImageWidth, RunningMode.LIVE_STREAM)
 
                 val msg = when (currentState) {
-                    AutoTestState.WAITING_FOR_4M -> "請繼續退後..."
-                    AutoTestState.TESTING -> "往前走向手機"
+                    AutoTestState4m.WAITING_FOR_DISTANCE -> "請繼續退後..."
+                    AutoTestState4m.TESTING -> "往前走向手機"
                     else -> "準備中"
                 }
 
@@ -195,13 +183,13 @@ class GaitSpeed4mFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener 
                     label = "測試次數",
                     maxSets = 3,
                     setLabel = "測試次數",
-                    time = String.format(Locale.US, "%.2f", currentSeconds)
+                    time = String.format(Locale.US, "%.2f", currentSeconds),
+                    showAccuracy = false // <-- 加入這行隱藏準確率
                 )
             }
         }
     }
 
-    // 觸發倒數計時與設定終點
     private fun startCountdownSequence() {
         lifecycleScope.launch(Dispatchers.Main) {
             binding.tvCenterStatus.textSize = 100f
@@ -213,21 +201,20 @@ class GaitSpeed4mFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener 
             delay(1000)
             binding.tvCenterStatus.text = "GO!"
 
-            // 計算終點：假設使用者現在在 4.3m 處，走 4m 後應該離手機剩下 0.3m
             val startDist = binding.overlay.currentDistance
-            binding.overlay.targetDistance = max(0.2f, startDist - 4.0f) // 確保至少離手機 20cm，避免撞到
-            binding.overlay.isTestingGait = true // 告訴 Overlay 畫出紅線
+            binding.overlay.targetDistance = max(0.2f, startDist - 4.0f)
+            binding.overlay.isTestingGait = true
 
             startTime = SystemClock.elapsedRealtime()
-            currentState = AutoTestState.TESTING
+            currentState = AutoTestState4m.TESTING
 
             delay(1000)
-            binding.tvCenterStatus.text = "" // 清空文字
+            binding.tvCenterStatus.text = ""
         }
     }
 
     private fun finishTrial() {
-        currentState = AutoTestState.FINISHED
+        currentState = AutoTestState4m.FINISHED
         binding.overlay.isTestingGait = false
         testCount++
 
@@ -263,7 +250,7 @@ class GaitSpeed4mFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener 
             bestScore = 0
             showHeightDialog()
         } else {
-            currentState = AutoTestState.WAITING_FOR_4M
+            currentState = AutoTestState4m.WAITING_FOR_DISTANCE
             binding.tvCenterStatus.text = "請退後至\n大於 4 公尺處"
             binding.tvCenterStatus.textSize = 50f
         }
