@@ -108,6 +108,7 @@ class BottleLiftFragment : Fragment() {
             )
             objectDetectorHelper = ObjectDetectorHelper(
                 context = requireContext(),
+                threshold = 0.4f, // 降低底層過濾門檻
                 runningMode = RunningMode.LIVE_STREAM,
                 currentDelegate = viewModel.currentDelegate,
                 objectDetectorListener = objectListener

@@ -45,8 +45,8 @@ class SqueezeBallFragment : Fragment() {
         private const val REPS_PER_SET = 12
         private const val SETS_PER_HAND = 3
         private const val SET_REST_TIME_MS = 60000L
-        private const val SQUEEZE_THRESHOLD = 0.45f // 比例低於此值視為握緊
-        private const val RELEASE_THRESHOLD = 0.60f // 比例高於此值視為鬆開
+        private const val SQUEEZE_THRESHOLD = 0.55f // 比例低於此值視為握緊
+        private const val RELEASE_THRESHOLD = 0.70f // 比例高於此值視為鬆開
         private const val PERFECT_SQUEEZE_RATIO = 0.05f // 完美握緊的比例 (指尖幾乎貼到大拇指)
         private const val TARGET_HOLD_MS = 2000L // 目標停留時間 (2秒)
     }
@@ -103,6 +103,7 @@ class SqueezeBallFragment : Fragment() {
             )
             objectDetectorHelper = ObjectDetectorHelper(
                 context = requireContext(),
+                threshold = 0.2f, // 降低底層過濾門檻
                 runningMode = RunningMode.LIVE_STREAM,
                 objectDetectorListener = objectListener
             )
