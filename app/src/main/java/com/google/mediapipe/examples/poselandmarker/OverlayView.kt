@@ -130,18 +130,33 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
         poseResults?.let { result ->
             if (result.landmarks().isNotEmpty()) {
                 val landmarks = result.landmarks()[0]
-                val leftShoulder = landmarks[11]
-                val rightShoulder = landmarks[12]
+
+                // 【修改 1】：改用鼻子 (Nose) 到 腳踝 (Ankle) 來計算，避免駝背造成誤差
+                val nose = landmarks[0]
                 val leftAnkle = landmarks[27]
                 val rightAnkle = landmarks[28]
 
-                if (leftShoulder.visibility().orElse(0f) > 0.5f && leftAnkle.visibility().orElse(0f) > 0.5f) {
-                    val topY = (leftShoulder.y() + rightShoulder.y()) / 2f
+                // 確保鼻子和腳踝都有清楚入鏡
+                if (nose.visibility().orElse(0f) > 0.5f && leftAnkle.visibility().orElse(0f) > 0.5f) {
+                    // 計算腳踝中心點
                     val bottomY = (leftAnkle.y() + rightAnkle.y()) / 2f
-                    val poseHeight = bottomY - topY
+
+                    // 新的骨架高度 = 腳踝 Y 座標 - 鼻子 Y 座標
+                    val poseHeight = bottomY - nose.y()
 
                     if (poseHeight > 0 && userHeightCm > 0) {
-                        currentDistance = (userHeightCm / 100f) * 0.875f / poseHeight
+
+                        // 【修改 2】：常數微調區
+                        // 如果 APP 測出來的距離「比實際還遠」，請把這個數字「調小」(例如改為 0.65f)
+                        // 如果 APP 測出來的距離「比實際還近」，請把這個數字「調大」(例如改為 0.85f)
+                        val cameraFocalConstant = 0.75f
+
+                        // 鼻子到腳踝大約佔總身高的 90% (0.9f)
+                        val effectiveHeightMeters = (userHeightCm / 100f) * 0.9f
+
+                        // 新的精準距離公式
+                        currentDistance = effectiveHeightMeters * cameraFocalConstant / poseHeight
+
                         val distText = String.format(Locale.US, "目前距離: %.2f m", currentDistance)
                         canvas.drawText(distText, 50f, 150f, textPaint)
 
@@ -150,7 +165,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
                             val feetY = bottomY * imageHeight * scaleFactor
                             val poseHeightPixel = poseHeight * imageHeight * scaleFactor
 
-                            val cameraHeight = 1.2f
+                            val cameraHeight = 0.75f
                             val personHeight = max(userHeightCm / 100f, 0.1f)
                             val heightRatio = cameraHeight / personHeight
                             val horizonY = feetY - poseHeightPixel * heightRatio
