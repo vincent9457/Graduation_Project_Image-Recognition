@@ -123,6 +123,15 @@
             app:cornerRadius="12dp" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnFigure8Walking"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="16dp"
+            android:text="8字步訓練 (C-6)(D-7)"
+            android:textSize="18sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnBalanceTest"
             android:layout_width="match_parent"
             android:layout_height="60dp"

@@ -85,6 +85,15 @@
         <action
             android:id="@+id/action_home_to_gait_speed_6m"
             app:destination="@id/gait_speed_6m_fragment" />
+        <action
+            android:id="@+id/action_home_to_figure8_walking"
+            app:destination="@id/figure8_walking_fragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/figure8_walking_fragment"
+        android:name="com.google.mediapipe.examples.poselandmarker.fragment.Figure8WalkingFragment"
+        android:label="Figure8WalkingFragment">
     </fragment>
 
     <fragment

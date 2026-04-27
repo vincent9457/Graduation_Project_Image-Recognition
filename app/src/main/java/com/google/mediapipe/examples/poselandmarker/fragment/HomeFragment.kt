@@ -88,6 +88,9 @@ class HomeFragment : Fragment() {
         binding.btnGaitSpeed6mTest.setOnClickListener {
             findNavController().navigate(R.id.action_home_to_gait_speed_6m)
         }
+        binding.btnFigure8Walking.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_figure8_walking)
+        }
     }
 
     override fun onDestroyView() {

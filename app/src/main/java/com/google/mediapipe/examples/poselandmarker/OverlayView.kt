@@ -47,7 +47,6 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
     var isTrackingLeftBottle = false
     var isTrackingRightBottle = false
     var isTrackingBall = false
-    var isTrackingTowel = false
 
     private var count = 0
     private var setCount = 1
@@ -314,20 +313,24 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
             }
         }
 
-        // --- 繪製雙手之間的「虛擬毛巾」 ---
-        if (isTrackingTowel) {
-            handResults?.let { result ->
-                if (result.landmarks().size == 2) {
-                    val hand1Wrist = result.landmarks()[0][0]
-                    val hand2Wrist = result.landmarks()[1][0]
+        // --- 繪製偵測到的物品 (僅顯示水瓶，其餘忽略) ---
+        objectResults?.let { result ->
+            for (detection in result.detections()) {
+                val category = detection.categories().firstOrNull()
+                // 參考舉水瓶寫法：只框出 "bottle"
+                if (category?.categoryName() == "bottle" && category.score() > 0.3f) {
+                    val box = detection.boundingBox()
+                    val left = box.left * scaleFactor
+                    val top = box.top * scaleFactor
+                    val right = box.right * scaleFactor
+                    val bottom = box.bottom * scaleFactor
 
-                    if (hand1Wrist.visibility().orElse(0f) > 0.2f && hand2Wrist.visibility().orElse(0f) > 0.2f) {
-                        val x1 = hand1Wrist.x() * imageWidth * scaleFactor
-                        val y1 = hand1Wrist.y() * imageHeight * scaleFactor
-                        val x2 = hand2Wrist.x() * imageWidth * scaleFactor
-                        val y2 = hand2Wrist.y() * imageHeight * scaleFactor
-                        canvas.drawLine(x1, y1, x2, y2, towelPaint)
-                    }
+                    // 繪製水瓶框線
+                    canvas.drawRect(left, top, right, bottom, boxPaint)
+
+                    // 顯示標籤與信心度
+                    val labelText = String.format(Locale.US, "水瓶 %.2f", category.score())
+                    canvas.drawText(labelText, left, top - 10, textPaint)
                 }
             }
         }
