@@ -33,6 +33,60 @@
             app:cornerRadius="12dp" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnWalkingBTest"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="16dp"
+            android:text="步行 (B-1)"
+            android:textSize="18sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnWalkingBWeek7Test"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="16dp"
+            android:text="步行 (B級week7)"
+            android:textSize="18sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnWalkingCTest"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="16dp"
+            android:text="步行 (C-1)"
+            android:textSize="18sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnWalkingCWeek7Test"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="16dp"
+            android:text="步行 (C級week7)"
+            android:textSize="18sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnWalkingDTest"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="16dp"
+            android:text="步行 (D-1)"
+            android:textSize="18sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnWalkingDWeek7Test"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="16dp"
+            android:text="步行 (D級week7)"
+            android:textSize="18sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSqueezeBallTest"
             android:layout_width="match_parent"
             android:layout_height="60dp"
@@ -47,6 +101,15 @@
             android:layout_height="60dp"
             android:layout_marginBottom="16dp"
             android:text="舉水瓶 (A-3)(B-2)(C-3)(D-3)"
+            android:textSize="18sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnWeightedLegStretchTest"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="16dp"
+            android:text="腳踝負重腿部伸展 (A-4)"
             android:textSize="18sp"
             app:cornerRadius="12dp" />
 
@@ -128,6 +191,24 @@
             android:layout_height="60dp"
             android:layout_marginBottom="16dp"
             android:text="8字步訓練 (C-6)(D-7)"
+            android:textSize="18sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLegStretchTest"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="16dp"
+            android:text="腿部伸展 (C-7)(D-9)"
+            android:textSize="18sp"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnStairClimbingTest"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginBottom="16dp"
+            android:text="上下樓梯 (D-5)"
             android:textSize="18sp"
             app:cornerRadius="12dp" />
 

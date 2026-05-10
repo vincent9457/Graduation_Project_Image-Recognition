@@ -50,6 +50,24 @@
             android:id="@+id/action_home_to_walking"
             app:destination="@id/walking_fragment" />
         <action
+            android:id="@+id/action_home_to_walking_b"
+            app:destination="@id/walking_b_fragment" />
+        <action
+            android:id="@+id/action_home_to_walking_c"
+            app:destination="@id/walking_c_fragment" />
+        <action
+            android:id="@+id/action_home_to_walking_d"
+            app:destination="@id/walking_d_fragment" />
+        <action
+            android:id="@+id/action_home_to_walking_d_week7"
+            app:destination="@id/walking_d_week7_fragment" />
+        <action
+            android:id="@+id/action_home_to_walking_b_week7"
+            app:destination="@id/walking_b_week7_fragment" />
+        <action
+            android:id="@+id/action_home_to_walking_c_week7"
+            app:destination="@id/walking_c_week7_fragment" />
+        <action
             android:id="@+id/action_home_to_simulated_sitting"
             app:destination="@id/simulated_sitting_fragment" />
         <action
@@ -88,6 +106,33 @@
         <action
             android:id="@+id/action_home_to_figure8_walking"
             app:destination="@id/figure8_walking_fragment" />
+        <action
+            android:id="@+id/action_home_to_leg_stretch"
+            app:destination="@id/leg_stretch_fragment" />
+        <action
+            android:id="@+id/action_home_to_weighted_leg_stretch"
+            app:destination="@id/weighted_leg_stretch_fragment" />
+        <action
+            android:id="@+id/action_home_to_stair_climbing"
+            app:destination="@id/stair_climbing_fragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/stair_climbing_fragment"
+        android:name="com.google.mediapipe.examples.poselandmarker.fragment.StairClimbingFragment"
+        android:label="StairClimbingFragment">
+    </fragment>
+
+    <fragment
+        android:id="@+id/weighted_leg_stretch_fragment"
+        android:name="com.google.mediapipe.examples.poselandmarker.fragment.WeightedLegStretchFragment"
+        android:label="WeightedLegStretchFragment">
+    </fragment>
+
+    <fragment
+        android:id="@+id/leg_stretch_fragment"
+        android:name="com.google.mediapipe.examples.poselandmarker.fragment.LegStretchFragment"
+        android:label="LegStretchFragment">
     </fragment>
 
     <fragment
@@ -164,6 +209,24 @@
     </fragment>
 
     <fragment
+        android:id="@+id/walking_b_fragment"
+        android:name="com.google.mediapipe.examples.poselandmarker.fragment.WalkingBFragment"
+        android:label="WalkingBFragment">
+    </fragment>
+
+    <fragment
+        android:id="@+id/walking_c_fragment"
+        android:name="com.google.mediapipe.examples.poselandmarker.fragment.WalkingCFragment"
+        android:label="WalkingCFragment">
+    </fragment>
+
+    <fragment
+        android:id="@+id/walking_d_fragment"
+        android:name="com.google.mediapipe.examples.poselandmarker.fragment.WalkingDFragment"
+        android:label="WalkingDFragment">
+    </fragment>
+
+    <fragment
         android:id="@+id/simulated_sitting_fragment"
         android:name="com.google.mediapipe.examples.poselandmarker.fragment.SimulatedSittingFragment"
         android:label="SimulatedSittingFragment">
@@ -191,6 +254,24 @@
         android:id="@+id/bottle_lift_fragment"
         android:name="com.google.mediapipe.examples.poselandmarker.fragment.BottleLiftFragment"
         android:label="BottleLiftFragment">
+    </fragment>
+
+    <fragment
+        android:id="@+id/walking_b_week7_fragment"
+        android:name="com.google.mediapipe.examples.poselandmarker.fragment.WalkingBWeek7Fragment"
+        android:label="WalkingBWeek7Fragment">
+    </fragment>
+
+    <fragment
+        android:id="@+id/walking_c_week7_fragment"
+        android:name="com.google.mediapipe.examples.poselandmarker.fragment.WalkingCWeek7Fragment"
+        android:label="WalkingCWeek7Fragment">
+    </fragment>
+
+    <fragment
+        android:id="@+id/walking_d_week7_fragment"
+        android:name="com.google.mediapipe.examples.poselandmarker.fragment.WalkingDWeek7Fragment"
+        android:label="WalkingDWeek7Fragment">
     </fragment>
 
     <fragment

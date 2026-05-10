@@ -52,6 +52,24 @@ class HomeFragment : Fragment() {
         binding.btnWalkingTest.setOnClickListener {
             findNavController().navigate(R.id.action_home_to_walking)
         }
+        binding.btnWalkingBTest.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_walking_b)
+        }
+        binding.btnWalkingBWeek7Test.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_walking_b_week7)
+        }
+        binding.btnWalkingCTest.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_walking_c)
+        }
+        binding.btnWalkingCWeek7Test.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_walking_c_week7)
+        }
+        binding.btnWalkingDTest.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_walking_d)
+        }
+        binding.btnWalkingDWeek7Test.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_walking_d_week7)
+        }
         binding.btnSimulatedSittingTest.setOnClickListener {
             findNavController().navigate(R.id.action_home_to_simulated_sitting)
         }
@@ -90,6 +108,15 @@ class HomeFragment : Fragment() {
         }
         binding.btnFigure8Walking.setOnClickListener {
             findNavController().navigate(R.id.action_home_to_figure8_walking)
+        }
+        binding.btnLegStretchTest.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_leg_stretch)
+        }
+        binding.btnWeightedLegStretchTest.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_weighted_leg_stretch)
+        }
+        binding.btnStairClimbingTest.setOnClickListener {
+            findNavController().navigate(R.id.action_home_to_stair_climbing)
         }
     }
 

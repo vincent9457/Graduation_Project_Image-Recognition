@@ -110,12 +110,15 @@ class Figure8WalkingFragment : Fragment() {
             )
             objectDetectorHelper = ObjectDetectorHelper(
                 context = requireContext(),
-                threshold = 0.2f, // 參考舉水瓶：使用 0.4 門檻
+                threshold = 0.1f, // 參考舉水瓶：使用 0.4 門檻
                 runningMode = RunningMode.LIVE_STREAM,
                 currentDelegate = viewModel.currentDelegate,
                 objectDetectorListener = objectListener
             )
         }
+
+        // 預設身高 160cm，可根據需求從 ViewModel 或 Preferences 讀取
+        binding.overlay.userHeightCm = 165f
 
         binding.btnFinish.setOnClickListener {
             findNavController().navigate(R.id.home_fragment)
@@ -226,22 +229,38 @@ class Figure8WalkingFragment : Fragment() {
 
         val landmarks = results.landmarks().firstOrNull()
         val bottlesCount = latestBottleBoxes.size
+        var bottleDistanceMeters = 0f
 
-        // 1. 水瓶偵測檢查
+        // 1. 水瓶偵測與間距計算
         if (bottlesCount < 2) {
             if (currentState == ExerciseState.WALKING) {
                 updateUI("水瓶消失，請保持水瓶在畫面內")
                 totalAccuracyAccumulated += 50f 
                 accuracyTicks++
             } else if (currentState == ExerciseState.WAITING_BOTTLES) {
-                updateUI("請在地上放置兩瓶水 (偵測到: $bottlesCount)")
+                updateUI("請在地上放置兩瓶水")
                 return
             }
         } else {
-            // 將水瓶座標轉換為歸一化 (0~1)，方便與 PoseLandmarks 比較
+            // 將水瓶座標轉換為歸一化 (0~1)
             val sortedBottles = latestBottleBoxes.sortedBy { it.centerX() }
             bottleLeftXNorm = sortedBottles.first().centerX() / imgWidth
             bottleRightXNorm = sortedBottles.last().centerX() / imgWidth
+
+            // 計算兩瓶水之間的物理距離 (需有人體作為參考)
+            if (landmarks != null) {
+                val nose = landmarks[0]
+                val leftAnkle = landmarks[27]
+                val rightAnkle = landmarks[28]
+                val poseHeightNorm = ((leftAnkle.y() + rightAnkle.y()) / 2f) - nose.y()
+                
+                if (poseHeightNorm > 0) {
+                    val userHeightMeters = (binding.overlay.userHeightCm / 100f) * 0.9f // 鼻子到腳踝約 90%
+                    val deltaXNorm = bottleRightXNorm - bottleLeftXNorm
+                    // 公式: 物理寬度 = (Δx_norm * 實體高度) / 高度_norm
+                    bottleDistanceMeters = (deltaXNorm * userHeightMeters) / poseHeightNorm
+                }
+            }
         }
 
         // 2. 人體可見度檢查
@@ -270,8 +289,12 @@ class Figure8WalkingFragment : Fragment() {
         when (currentState) {
             ExerciseState.WAITING_BOTTLES -> {
                 if (bottlesCount >= 2) {
-                    currentState = ExerciseState.WALKING
-                    phase = 0
+                    if (bottleDistanceMeters < 1.0f) {
+                        updateUI(String.format(Locale.US, "水瓶間距不足\n請拉開至 1m 以上\n(目前: %.2fm)", bottleDistanceMeters))
+                    } else {
+                        currentState = ExerciseState.WALKING
+                        phase = 0
+                    }
                 }
             }
             ExerciseState.WALKING -> {
@@ -287,7 +310,7 @@ class Figure8WalkingFragment : Fragment() {
                         if (hipX < bottleLeftXNorm) phase = 1
                     }
                     1 -> { // 在左側，往回走
-                        updateUI("請回中間，準備繞右邊水瓶")
+                        updateUI("請回中間\n準備繞右邊水瓶")
                         if (hipX > midX) phase = 2
                     }
                     2 -> { // 在中間，往右走
@@ -295,7 +318,7 @@ class Figure8WalkingFragment : Fragment() {
                         if (hipX > bottleRightXNorm) phase = 3
                     }
                     3 -> { // 在右側，往回走
-                        updateUI("請回到起點完成一圈")
+                        updateUI("請回到起點\n完成一圈")
                         if (hipX < midX) {
                             phase = 0 // 重置 Phase
                             finishLap()
@@ -325,7 +348,7 @@ class Figure8WalkingFragment : Fragment() {
         timer?.cancel()
         timer = object : CountDownTimer(LAP_REST_TIME_MS, 100) {
             override fun onTick(ms: Long) {
-                updateUI(String.format(Locale.US, "繞完一圈！站立休息 (%.1f s)", ms / 1000f))
+                updateUI(String.format(Locale.US, "繞完一圈！\n站立休息 (%.1f s)", ms / 1000f))
             }
             override fun onFinish() {
                 currentState = ExerciseState.WALKING
@@ -339,7 +362,7 @@ class Figure8WalkingFragment : Fragment() {
         timer?.cancel()
         timer = object : CountDownTimer(SET_REST_TIME_MS, 100) {
             override fun onTick(ms: Long) {
-                updateUI(String.format(Locale.US, "組間休息 (%.1f s)", ms / 1000f))
+                updateUI(String.format(Locale.US, "組間休息\n(%.1f s)", ms / 1000f))
             }
             override fun onFinish() {
                 currentSet++
@@ -353,6 +376,7 @@ class Figure8WalkingFragment : Fragment() {
     private fun completeTest() {
         currentState = ExerciseState.COMPLETED
         val finalAccuracy = calculateAvgAccuracy()
+        binding.tvCenterStatus.text = ""
         binding.overlay.updateTestInfo(currentLap, currentSet, "測試完成！", finalAccuracy, true, "圈數", TOTAL_SETS)
         binding.resultPanel.visibility = View.VISIBLE
         binding.tvFinalResult.text = String.format(Locale.US, "總平均準確率: %.1f%%", finalAccuracy)
@@ -360,6 +384,7 @@ class Figure8WalkingFragment : Fragment() {
 
     private fun updateUI(status: String) {
         binding.overlay.updateTestInfo(currentLap, currentSet, status, calculateAvgAccuracy(), currentState == ExerciseState.COMPLETED, "圈數", TOTAL_SETS)
+        binding.tvCenterStatus.text = status
     }
 
     private fun calculateAvgAccuracy() = if (accuracyTicks == 0) 0f else (totalAccuracyAccumulated / accuracyTicks).coerceIn(0f, 100f)

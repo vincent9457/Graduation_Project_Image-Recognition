@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/figure8_walking_container"
+    android:id="@+id/stair_climbing_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -16,20 +16,34 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- 大字狀態顯示 (參考 GaitSpeed4m) -->
     <TextView
-        android:id="@+id/tvCenterStatus"
-        android:layout_width="match_parent"
+        android:id="@+id/tvLargeStatus"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
+        android:textColor="#FFFF00"
+        android:textSize="60sp"
+        android:textStyle="bold"
         android:gravity="center"
-        android:padding="24dp"
         android:shadowColor="#000000"
         android:shadowDx="5"
         android:shadowDy="5"
         android:shadowRadius="10"
-        android:textColor="#FFFF00"
-        android:textSize="60sp"
-        android:textStyle="bold" />
+        android:layout_marginBottom="100dp" />
+
+    <!-- 休息倒數顯示 -->
+    <TextView
+        android:id="@+id/tvRestTimer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="#AA000000"
+        android:padding="20dp"
+        android:textColor="@android:color/white"
+        android:textSize="48sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
 
     <androidx.cardview.widget.CardView
         android:id="@+id/resultPanel"
@@ -50,7 +64,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:text="8字步訓練完成"
+                android:text="上下樓梯訓練完成"
                 android:textColor="@color/mp_color_primary"
                 android:textSize="22sp"
                 android:textStyle="bold" />
@@ -60,7 +74,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="總平均準確率: 0.0%"
+                android:text="平均準確率: 0.0%"
                 android:textSize="18sp" />
 
             <com.google.android.material.button.MaterialButton
@@ -68,21 +82,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:text="確定" />
-
+                android:text="返回主畫面" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_switch_camera"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="100dp"
-        app:backgroundTint="@color/mp_color_primary"
-        app:srcCompat="@drawable/ic_baseline_photo_camera_24"
-        app:tint="@android:color/white" />
 
     <include
         android:id="@+id/bottom_sheet_layout"

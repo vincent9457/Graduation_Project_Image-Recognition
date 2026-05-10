@@ -318,7 +318,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
             for (detection in result.detections()) {
                 val category = detection.categories().firstOrNull()
                 // 參考舉水瓶寫法：只框出 "bottle"
-                if (category?.categoryName() == "bottle" && category.score() > 0.3f) {
+                if (category?.categoryName() == "bottle" && category.score() > 0.1f) {
                     val box = detection.boundingBox()
                     val left = box.left * scaleFactor
                     val top = box.top * scaleFactor
