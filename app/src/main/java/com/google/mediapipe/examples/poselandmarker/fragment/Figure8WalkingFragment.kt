@@ -80,10 +80,10 @@ class Figure8WalkingFragment : Fragment() {
     private var accuracyTicks = 0
 
     // 8 字步路徑追蹤邏輯 (Phase 分段)
-    // 0: 起點 -> 1: 繞過左瓶 -> 2: 回到中間 -> 3: 繞過右瓶 -> 4: 回到起點 (完成一圈)
+    // 0: 起點 -> 1: 繞過遠瓶 -> 2: 回到中間 -> 3: 繞過近瓶 -> 4: 回到起點 (完成一圈)
     private var phase = 0 
-    private var bottleLeftXNorm = 0f
-    private var bottleRightXNorm = 0f
+    private var bottleNearDist = 0f
+    private var bottleFarDist = 0f
     
     private lateinit var backgroundExecutor: ExecutorService
 
@@ -110,7 +110,8 @@ class Figure8WalkingFragment : Fragment() {
             )
             objectDetectorHelper = ObjectDetectorHelper(
                 context = requireContext(),
-                threshold = 0.1f, // 參考舉水瓶：使用 0.4 門檻
+                threshold = 0.1f, // 提升模型後，建議將門檻稍微調高一點（例如 0.1），避免雜訊
+                currentModel = ObjectDetectorHelper.MODEL_EFFICIENTDETV2,
                 runningMode = RunningMode.LIVE_STREAM,
                 currentDelegate = viewModel.currentDelegate,
                 objectDetectorListener = objectListener
@@ -231,39 +232,35 @@ class Figure8WalkingFragment : Fragment() {
         val bottlesCount = latestBottleBoxes.size
         var bottleDistanceMeters = 0f
 
-        // 1. 水瓶偵測與間距計算
+        // 1. 水瓶偵測與間距計算 (前後擺法)
         if (bottlesCount < 2) {
             if (currentState == ExerciseState.WALKING) {
                 updateUI("水瓶消失，請保持水瓶在畫面內")
-                totalAccuracyAccumulated += 50f 
+                totalAccuracyAccumulated += 50f
                 accuracyTicks++
             } else if (currentState == ExerciseState.WAITING_BOTTLES) {
-                updateUI("請在地上放置兩瓶水")
+                updateUI("請在地上前後放置兩瓶水")
                 return
             }
         } else {
-            // 將水瓶座標轉換為歸一化 (0~1)
-            val sortedBottles = latestBottleBoxes.sortedBy { it.centerX() }
-            bottleLeftXNorm = sortedBottles.first().centerX() / imgWidth
-            bottleRightXNorm = sortedBottles.last().centerX() / imgWidth
+            // 前後擺法：依據底部 Y 座標排序，底部在越下面 (Y較大) 的越近
+            val sortedBottles = latestBottleBoxes.sortedByDescending { it.bottom }
+            val nearBox = sortedBottles[0]
+            val farBox = sortedBottles[1]
 
-            // 計算兩瓶水之間的物理距離 (需有人體作為參考)
-            if (landmarks != null) {
-                val nose = landmarks[0]
-                val leftAnkle = landmarks[27]
-                val rightAnkle = landmarks[28]
-                val poseHeightNorm = ((leftAnkle.y() + rightAnkle.y()) / 2f) - nose.y()
-                
-                if (poseHeightNorm > 0) {
-                    val userHeightMeters = (binding.overlay.userHeightCm / 100f) * 0.9f // 鼻子到腳踝約 90%
-                    val deltaXNorm = bottleRightXNorm - bottleLeftXNorm
-                    // 公式: 物理寬度 = (Δx_norm * 實體高度) / 高度_norm
-                    bottleDistanceMeters = (deltaXNorm * userHeightMeters) / poseHeightNorm
-                }
-            }
+            // 根據水瓶在畫面中的高度比率估計距離 (假設標準水瓶高度約 30cm = 0.30m)
+            // 焦距常數調整為 0.8f 以修正水瓶距離過近的問題
+            val nearHeightNorm = nearBox.height() / imgHeight
+            val farHeightNorm = farBox.height() / imgHeight
+
+            bottleNearDist = (0.30f * 0.8f) / nearHeightNorm
+            bottleFarDist = (0.30f * 0.8f) / farHeightNorm
+
+            // 兩瓶水的前後物理距離差
+            bottleDistanceMeters = bottleFarDist - bottleNearDist
         }
 
-        // 2. 人體可見度檢查
+        // 2. 人體可見度檢查與距離計算
         if (landmarks == null) {
             if (currentState == ExerciseState.WALKING) {
                 updateUI("請進入畫面中")
@@ -273,7 +270,19 @@ class Figure8WalkingFragment : Fragment() {
             return
         }
 
-        val hipX = (landmarks[23].x() + landmarks[24].x()) / 2f
+        // 計算人體目前距離相機的深度 (參考 OverlayView 邏輯)
+        val nose = landmarks[0]
+        val leftAnkle = landmarks[27]
+        val rightAnkle = landmarks[28]
+        val poseHeightNorm = ((leftAnkle.y() + rightAnkle.y()) / 2f) - nose.y()
+        var personDistance = 0f
+        if (poseHeightNorm > 0) {
+            // 進一步調低人體身高佔比，解決偵測距離過遠的問題
+            // 鼻子到腳踝約佔身高的 65% (考量步行時微彎與相機俯視角)
+            val userHeightMeters = (binding.overlay.userHeightCm / 100f) * 0.95f
+            personDistance = (userHeightMeters * 0.8f) / poseHeightNorm
+        }
+
         val visibility = (landmarks[23].visibility().orElse(0f) + landmarks[24].visibility().orElse(0f)) / 2f
 
         if (visibility < VISIBILITY_THRESHOLD) {
@@ -285,12 +294,12 @@ class Figure8WalkingFragment : Fragment() {
             return
         }
 
-        // 3. 動作狀態機
+        // 3. 動作狀態機 (前後深度判斷)
         when (currentState) {
             ExerciseState.WAITING_BOTTLES -> {
                 if (bottlesCount >= 2) {
                     if (bottleDistanceMeters < 1.0f) {
-                        updateUI(String.format(Locale.US, "水瓶間距不足\n請拉開至 1m 以上\n(目前: %.2fm)", bottleDistanceMeters))
+                        updateUI(String.format(Locale.US, "前後間距不足\n請拉開至 1m 以上\n(目前: %.2fm)", bottleDistanceMeters))
                     } else {
                         currentState = ExerciseState.WALKING
                         phase = 0
@@ -302,24 +311,25 @@ class Figure8WalkingFragment : Fragment() {
                 totalAccuracyAccumulated += 100f
                 accuracyTicks++
 
-                val midX = (bottleLeftXNorm + bottleRightXNorm) / 2f
-                
+                val midDist = (bottleNearDist + bottleFarDist) / 2f
+                val margin = 0.2f // 增加判定門檻至 30cm，確保人確實繞過瓶子才判定
+
                 when (phase) {
-                    0 -> { // 開始，應在中間，往左走
-                        updateUI("請繞過左邊的水瓶")
-                        if (hipX < bottleLeftXNorm) phase = 1
+                    0 -> { // 開始，應在中間，往遠處走，繞過遠瓶
+                        updateUI("請繞過遠端的水瓶")
+                        if (personDistance > bottleFarDist + margin) phase = 1
                     }
-                    1 -> { // 在左側，往回走
-                        updateUI("請回中間\n準備繞右邊水瓶")
-                        if (hipX > midX) phase = 2
+                    1 -> { // 在遠處，往回走
+                        updateUI("請回到中間\n準備繞近端水瓶")
+                        if (personDistance < midDist) phase = 2
                     }
-                    2 -> { // 在中間，往右走
-                        updateUI("請繞過右邊的水瓶")
-                        if (hipX > bottleRightXNorm) phase = 3
+                    2 -> { // 在中間，往近處走，繞過近瓶
+                        updateUI("請繞過近端的水瓶")
+                        if (personDistance < bottleNearDist - margin) phase = 3
                     }
-                    3 -> { // 在右側，往回走
+                    3 -> { // 在近處，往回走
                         updateUI("請回到起點\n完成一圈")
-                        if (hipX < midX) {
+                        if (personDistance > midDist) {
                             phase = 0 // 重置 Phase
                             finishLap()
                         }

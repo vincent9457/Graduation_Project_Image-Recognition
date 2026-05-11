@@ -328,9 +328,23 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
                     // 繪製水瓶框線
                     canvas.drawRect(left, top, right, bottom, boxPaint)
 
-                    // 顯示標籤與信心度
-                    val labelText = String.format(Locale.US, "水瓶 %.2f", category.score())
-                    canvas.drawText(labelText, left, top - 10, textPaint)
+                    // 繪製水瓶距離 (假設標準水瓶高度約 23cm = 0.23m)
+                    val bottleHeightNorm = box.height() / imageHeight
+                    if (bottleHeightNorm > 0) {
+                        val distance = (0.23f * 0.75f) / bottleHeightNorm
+                        val bottleDistText = String.format(Locale.US, "瓶: %.2fm", distance)
+                        
+                        // 使用黃色文字顯示在瓶子上方
+                        val oldColor = textPaint.color
+                        val oldSize = textPaint.textSize
+                        textPaint.color = Color.YELLOW
+                        textPaint.textSize = 40f
+                        canvas.drawText(bottleDistText, left, top - 10f, textPaint)
+                        
+                        // 還原文字設定
+                        textPaint.color = oldColor
+                        textPaint.textSize = oldSize
+                    }
                 }
             }
         }
