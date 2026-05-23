@@ -162,6 +162,7 @@ class WalkingBWeek7Fragment : Fragment(), PoseLandmarkerHelper.LandmarkerListene
                 }
             }
         }
+        binding.btnStartTraining.text = "確認並開始訓練"
     }
 
     private fun setUpCamera() {

@@ -75,6 +75,7 @@ class ChairStandFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
     private var isWaitingAtTop = false
     private var isRestingBetweenSets = false
     private var isTestCompleted = false
+    private var isTrainingStarted = false
     
     private var timer: CountDownTimer? = null
     private var currentTimerStatusText = ""
@@ -92,18 +93,25 @@ class ChairStandFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         backgroundExecutor = Executors.newSingleThreadExecutor()
-        binding.viewFinder.post { setUpCamera() }
-        backgroundExecutor.execute {
-            poseLandmarkerHelper = PoseLandmarkerHelper(
-                context = requireContext(),
-                runningMode = RunningMode.LIVE_STREAM,
-                minPoseDetectionConfidence = viewModel.currentMinPoseDetectionConfidence,
-                minPoseTrackingConfidence = viewModel.currentMinPoseTrackingConfidence,
-                minPosePresenceConfidence = viewModel.currentMinPosePresenceConfidence,
-                currentDelegate = viewModel.currentDelegate,
-                poseLandmarkerHelperListener = this
-            )
+
+        binding.btnStartTraining.setOnClickListener {
+            isTrainingStarted = true
+            binding.setupPanel.visibility = View.GONE
+            
+            binding.viewFinder.post { setUpCamera() }
+            backgroundExecutor.execute {
+                poseLandmarkerHelper = PoseLandmarkerHelper(
+                    context = requireContext(),
+                    runningMode = RunningMode.LIVE_STREAM,
+                    minPoseDetectionConfidence = viewModel.currentMinPoseDetectionConfidence,
+                    minPoseTrackingConfidence = viewModel.currentMinPoseTrackingConfidence,
+                    minPosePresenceConfidence = viewModel.currentMinPosePresenceConfidence,
+                    currentDelegate = viewModel.currentDelegate,
+                    poseLandmarkerHelperListener = this
+                )
+            }
         }
+
         binding.btnFinish.setOnClickListener {
             findNavController().navigate(R.id.home_fragment)
         }
@@ -154,6 +162,7 @@ class ChairStandFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
     }
 
     override fun onResults(resultBundle: PoseLandmarkerHelper.ResultBundle) {
+        if (!isTrainingStarted) return
         activity?.runOnUiThread {
             if (_binding != null) {
                 val results = resultBundle.results.first()
@@ -209,7 +218,7 @@ class ChairStandFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
             currentTimerStatusText
         } else {
             when {
-                isSitting -> "請輔助起身"
+                isSitting -> "請起身"
                 isStanding -> "請坐下"
                 else -> "偵測中..."
             }
@@ -256,6 +265,19 @@ class ChairStandFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
         binding.overlay.updateTestInfo(currentRep, currentSet, "測試完成！", finalAccuracy, true, "次數")
         binding.resultPanel.visibility = View.VISIBLE
         binding.tvFinalResult.text = String.format(Locale.US, "總平均準確率: %.1f%%", finalAccuracy)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (isTrainingStarted) {
+            // Start the PoseLandmarkerHelper again when users come back
+            // to the foreground.
+            backgroundExecutor.execute {
+                if (poseLandmarkerHelper.isClose()) {
+                    poseLandmarkerHelper.setupPoseLandmarker()
+                }
+            }
+        }
     }
 
     override fun onPause() {

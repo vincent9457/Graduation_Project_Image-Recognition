@@ -16,6 +16,43 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- 設定面板 -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/setupPanel"
+        android:layout_width="320dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="10dp">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="擠壓球訓練"
+                android:textColor="@color/mp_color_primary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="拿一顆橡膠球或握力球，盡可能慢慢用力握緊，然後鬆開手。3 組都做完後換手再次練習。"
+                android:textSize="16sp"
+                android:lineSpacingExtra="4dp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnStartTraining"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:layout_marginTop="24dp"
+                app:cornerRadius="10dp"
+                android:text="確認並開始訓練" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
     <androidx.cardview.widget.CardView
         android:id="@+id/resultPanel"
         android:layout_width="300dp"

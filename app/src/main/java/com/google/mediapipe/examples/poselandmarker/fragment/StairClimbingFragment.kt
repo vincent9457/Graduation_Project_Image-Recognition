@@ -82,6 +82,8 @@ class StairClimbingFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListene
     private var lastStepTime = 0L
     private var stepIntervals = mutableListOf<Long>()
 
+    private var isTrainingStarted = false
+
     private lateinit var backgroundExecutor: ExecutorService
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -94,22 +96,37 @@ class StairClimbingFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListene
         super.onViewCreated(view, savedInstanceState)
         backgroundExecutor = Executors.newSingleThreadExecutor()
 
+        binding.btnStartTraining.setOnClickListener {
+            isTrainingStarted = true
+            binding.setupPanel.visibility = View.GONE
+            binding.viewFinder.post { setUpCamera() }
+            backgroundExecutor.execute {
+                poseLandmarkerHelper = PoseLandmarkerHelper(
+                    context = requireContext(),
+                    runningMode = RunningMode.LIVE_STREAM,
+                    minPoseDetectionConfidence = viewModel.currentMinPoseDetectionConfidence,
+                    minPoseTrackingConfidence = viewModel.currentMinPoseTrackingConfidence,
+                    minPosePresenceConfidence = viewModel.currentMinPosePresenceConfidence,
+                    currentDelegate = viewModel.currentDelegate,
+                    poseLandmarkerHelperListener = this
+                )
+            }
+        }
+
         binding.btnFinish.setOnClickListener {
             findNavController().navigate(R.id.home_fragment)
         }
 
-        binding.viewFinder.post { setUpCamera() }
-        
-        backgroundExecutor.execute {
-            poseLandmarkerHelper = PoseLandmarkerHelper(
-                context = requireContext(),
-                runningMode = RunningMode.LIVE_STREAM,
-                minPoseDetectionConfidence = viewModel.currentMinPoseDetectionConfidence,
-                minPoseTrackingConfidence = viewModel.currentMinPoseTrackingConfidence,
-                minPosePresenceConfidence = viewModel.currentMinPosePresenceConfidence,
-                currentDelegate = viewModel.currentDelegate,
-                poseLandmarkerHelperListener = this
-            )
+        binding.fabSwitchCamera.setOnClickListener {
+            cameraFacing = if (cameraFacing == CameraSelector.LENS_FACING_FRONT) {
+                CameraSelector.LENS_FACING_BACK
+            } else {
+                CameraSelector.LENS_FACING_FRONT
+            }
+            // 如果相機已經初始化，則重新綁定以切換鏡頭
+            if (cameraProvider != null) {
+                bindCameraUseCases()
+            }
         }
     }
 
@@ -149,6 +166,7 @@ class StairClimbingFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListene
     }
 
     override fun onResults(resultBundle: PoseLandmarkerHelper.ResultBundle) {
+        if (!isTrainingStarted) return
         activity?.runOnUiThread {
             if (_binding != null) {
                 val results = resultBundle.results.first()
@@ -269,6 +287,17 @@ class StairClimbingFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListene
         binding.resultPanel.visibility = View.VISIBLE
         binding.tvFinalResult.text = String.format(Locale.US, "總平均準確率: %.1f%%\n總步數: %d 步", finalAccuracy, totalStepCount)
         binding.overlay.updateTestInfo(currentStepCount, currentSet, "訓練完成！", finalAccuracy, true, "目前步數", MAX_SETS)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (isTrainingStarted) {
+            backgroundExecutor.execute {
+                if (this::poseLandmarkerHelper.isInitialized && poseLandmarkerHelper.isClose()) {
+                    poseLandmarkerHelper.setupPoseLandmarker()
+                }
+            }
+        }
     }
 
     override fun onPause() {

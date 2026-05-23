@@ -80,6 +80,7 @@ class WringTowelFragment : Fragment() {
     private var currentState = TwistState.IDLE // 初始化狀態
     private var isResting = false
     private var isTestCompleted = false
+    private var isTrainingStarted = false
 
     private var twistStartTime = 0L
     private var timer: CountDownTimer? = null
@@ -99,15 +100,20 @@ class WringTowelFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         backgroundExecutor = Executors.newSingleThreadExecutor()
-        binding.viewFinder.post { setUpCamera() }
 
-        backgroundExecutor.execute {
-            handLandmarkerHelper = HandLandmarkerHelper(
-                context = requireContext(),
-                runningMode = RunningMode.LIVE_STREAM,
-                maxNumHands = 2, // 同時看雙手
-                handLandmarkerHelperListener = handListener
-            )
+        binding.btnStartTraining.setOnClickListener {
+            isTrainingStarted = true
+            binding.setupPanel.visibility = View.GONE
+
+            binding.viewFinder.post { setUpCamera() }
+            backgroundExecutor.execute {
+                handLandmarkerHelper = HandLandmarkerHelper(
+                    context = requireContext(),
+                    runningMode = RunningMode.LIVE_STREAM,
+                    maxNumHands = 2, // 同時看雙手
+                    handLandmarkerHelperListener = handListener
+                )
+            }
         }
 
         binding.btnFinish.setOnClickListener {
@@ -198,6 +204,7 @@ class WringTowelFragment : Fragment() {
     private val handListener = object : HandLandmarkerHelper.LandmarkerListener {
         override fun onError(error: String, errorCode: Int) { showErrorMsg(error) }
         override fun onResults(resultBundle: HandLandmarkerHelper.ResultBundle) {
+            if (!isTrainingStarted) return
             activity?.runOnUiThread {
                 if (_binding != null) {
                     val results = resultBundle.results.firstOrNull() ?: return@runOnUiThread
@@ -337,9 +344,11 @@ class WringTowelFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        backgroundExecutor.execute {
-            if(this::handLandmarkerHelper.isInitialized && handLandmarkerHelper.isClose()) {
-                handLandmarkerHelper.setupHandLandmarker()
+        if (isTrainingStarted) {
+            backgroundExecutor.execute {
+                if (this::handLandmarkerHelper.isInitialized && handLandmarkerHelper.isClose()) {
+                    handLandmarkerHelper.setupHandLandmarker()
+                }
             }
         }
     }

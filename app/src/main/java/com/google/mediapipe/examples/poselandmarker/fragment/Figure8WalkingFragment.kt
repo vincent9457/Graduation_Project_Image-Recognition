@@ -75,6 +75,7 @@ class Figure8WalkingFragment : Fragment() {
     private var currentState = ExerciseState.WAITING_BOTTLES
     private var timer: CountDownTimer? = null
     
+    private var isTrainingStarted = false
     private var latestBottleBoxes = listOf<android.graphics.RectF>()
     private var totalAccuracyAccumulated = 0f
     private var accuracyTicks = 0
@@ -96,26 +97,31 @@ class Figure8WalkingFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         backgroundExecutor = Executors.newSingleThreadExecutor()
-        binding.viewFinder.post { setUpCamera() }
 
-        backgroundExecutor.execute {
-            poseLandmarkerHelper = PoseLandmarkerHelper(
-                context = requireContext(),
-                runningMode = RunningMode.LIVE_STREAM,
-                minPoseDetectionConfidence = viewModel.currentMinPoseDetectionConfidence,
-                minPoseTrackingConfidence = viewModel.currentMinPoseTrackingConfidence,
-                minPosePresenceConfidence = viewModel.currentMinPosePresenceConfidence,
-                currentDelegate = viewModel.currentDelegate,
-                poseLandmarkerHelperListener = poseListener
-            )
-            objectDetectorHelper = ObjectDetectorHelper(
-                context = requireContext(),
-                threshold = 0.1f, // 提升模型後，建議將門檻稍微調高一點（例如 0.1），避免雜訊
-                currentModel = ObjectDetectorHelper.MODEL_EFFICIENTDETV2,
-                runningMode = RunningMode.LIVE_STREAM,
-                currentDelegate = viewModel.currentDelegate,
-                objectDetectorListener = objectListener
-            )
+        binding.btnStartTraining.setOnClickListener {
+            isTrainingStarted = true
+            binding.setupPanel.visibility = View.GONE
+            binding.viewFinder.post { setUpCamera() }
+
+            backgroundExecutor.execute {
+                poseLandmarkerHelper = PoseLandmarkerHelper(
+                    context = requireContext(),
+                    runningMode = RunningMode.LIVE_STREAM,
+                    minPoseDetectionConfidence = viewModel.currentMinPoseDetectionConfidence,
+                    minPoseTrackingConfidence = viewModel.currentMinPoseTrackingConfidence,
+                    minPosePresenceConfidence = viewModel.currentMinPosePresenceConfidence,
+                    currentDelegate = viewModel.currentDelegate,
+                    poseLandmarkerHelperListener = poseListener
+                )
+                objectDetectorHelper = ObjectDetectorHelper(
+                    context = requireContext(),
+                    threshold = 0.1f, // 提升模型後，建議將門檻稍微調高一點（例如 0.1），避免雜訊
+                    currentModel = ObjectDetectorHelper.MODEL_EFFICIENTDETV2,
+                    runningMode = RunningMode.LIVE_STREAM,
+                    currentDelegate = viewModel.currentDelegate,
+                    objectDetectorListener = objectListener
+                )
+            }
         }
 
         // 預設身高 160cm，可根據需求從 ViewModel 或 Preferences 讀取
@@ -405,12 +411,14 @@ class Figure8WalkingFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        backgroundExecutor.execute {
-            if(this::poseLandmarkerHelper.isInitialized && poseLandmarkerHelper.isClose()) {
-                poseLandmarkerHelper.setupPoseLandmarker()
-            }
-            if(this::objectDetectorHelper.isInitialized && objectDetectorHelper.isClosed()) {
-                objectDetectorHelper.setupObjectDetector()
+        if (isTrainingStarted) {
+            backgroundExecutor.execute {
+                if (this::poseLandmarkerHelper.isInitialized && poseLandmarkerHelper.isClose()) {
+                    poseLandmarkerHelper.setupPoseLandmarker()
+                }
+                if (this::objectDetectorHelper.isInitialized && objectDetectorHelper.isClosed()) {
+                    objectDetectorHelper.setupObjectDetector()
+                }
             }
         }
     }

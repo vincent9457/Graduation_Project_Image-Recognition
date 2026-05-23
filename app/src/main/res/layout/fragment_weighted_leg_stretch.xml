@@ -16,6 +16,43 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- 設定面板 -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/setupPanel"
+        android:layout_width="320dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="10dp">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="腳踝負重的腿部伸展"
+                android:textColor="@color/mp_color_primary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="坐在椅子上，在一隻腿的腳踝上放 500g 負重沙包，水平抬起小腿並盡可能保持筆直。\n• 如果無法重複 12 次，請取下負重沙包。"
+                android:textSize="16sp"
+                android:lineSpacingExtra="4dp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnStartTraining"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:layout_marginTop="24dp"
+                app:cornerRadius="10dp"
+                android:text="確認並開始訓練" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
     <androidx.cardview.widget.CardView
         android:id="@+id/resultPanel"
         android:layout_width="300dp"

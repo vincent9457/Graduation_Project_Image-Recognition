@@ -71,6 +71,7 @@ class SqueezeBallFragment : Fragment() {
     private var isSqueezing = false
     private var isResting = false
     private var isTestCompleted = false
+    private var isTrainingStarted = false
 
     // --- 握力球追蹤標記 (使用終極鎖定法) ---
     private var isBallDetected = false
@@ -93,20 +94,25 @@ class SqueezeBallFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         backgroundExecutor = Executors.newSingleThreadExecutor()
-        binding.viewFinder.post { setUpCamera() }
 
-        backgroundExecutor.execute {
-            handLandmarkerHelper = HandLandmarkerHelper(
-                context = requireContext(),
-                runningMode = RunningMode.LIVE_STREAM,
-                handLandmarkerHelperListener = handListener
-            )
-            objectDetectorHelper = ObjectDetectorHelper(
-                context = requireContext(),
-                threshold = 0.2f, // 降低底層過濾門檻
-                runningMode = RunningMode.LIVE_STREAM,
-                objectDetectorListener = objectListener
-            )
+        binding.btnStartTraining.setOnClickListener {
+            binding.setupPanel.visibility = View.GONE
+            isTrainingStarted = true
+            binding.viewFinder.post { setUpCamera() }
+
+            backgroundExecutor.execute {
+                handLandmarkerHelper = HandLandmarkerHelper(
+                    context = requireContext(),
+                    runningMode = RunningMode.LIVE_STREAM,
+                    handLandmarkerHelperListener = handListener
+                )
+                objectDetectorHelper = ObjectDetectorHelper(
+                    context = requireContext(),
+                    threshold = 0.2f, // 降低底層過濾門檻
+                    runningMode = RunningMode.LIVE_STREAM,
+                    objectDetectorListener = objectListener
+                )
+            }
         }
 
         binding.btnFinish.setOnClickListener {
@@ -201,7 +207,7 @@ class SqueezeBallFragment : Fragment() {
         override fun onError(error: String, errorCode: Int) { showErrorMsg(error) }
         override fun onResults(resultBundle: HandLandmarkerHelper.ResultBundle) {
             activity?.runOnUiThread {
-                if (_binding != null) {
+                if (_binding != null && isTrainingStarted) {
                     val results = resultBundle.results.firstOrNull() ?: return@runOnUiThread
                     processLogic(results)
                     binding.overlay.setHandResults(results, resultBundle.inputImageHeight, resultBundle.inputImageWidth, RunningMode.LIVE_STREAM)
@@ -368,12 +374,14 @@ class SqueezeBallFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        backgroundExecutor.execute {
-            if(this::handLandmarkerHelper.isInitialized && handLandmarkerHelper.isClose()) {
-                handLandmarkerHelper.setupHandLandmarker()
-            }
-            if(this::objectDetectorHelper.isInitialized && objectDetectorHelper.isClosed()) {
-                objectDetectorHelper.setupObjectDetector()
+        if (isTrainingStarted) {
+            backgroundExecutor.execute {
+                if (this::handLandmarkerHelper.isInitialized && handLandmarkerHelper.isClose()) {
+                    handLandmarkerHelper.setupHandLandmarker()
+                }
+                if (this::objectDetectorHelper.isInitialized && objectDetectorHelper.isClosed()) {
+                    objectDetectorHelper.setupObjectDetector()
+                }
             }
         }
     }

@@ -31,6 +31,45 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- 設定面板 -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/setupPanel"
+        android:layout_width="320dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="10dp">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+            <TextView
+                android:id="@+id/tvSetupTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="舉水瓶訓練"
+                android:textColor="@color/mp_color_primary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/tvSetupContent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="坐下時雙手自然垂在身體兩側，各握住一支水瓶。把手肘朝胸口方向彎曲，將瓶子舉到與肩膀齊高。\n• 調整水量使動作做完 12 次時感到稍微費力。\n• 訓練進行 6 週後請稍微增加水量。"
+                android:textSize="16sp"
+                android:lineSpacingExtra="4dp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnStartTraining"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:layout_marginTop="24dp"
+                app:cornerRadius="10dp"
+                android:text="確認並開始訓練" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
     <androidx.cardview.widget.CardView
         android:id="@+id/resultPanel"
         android:layout_width="300dp"

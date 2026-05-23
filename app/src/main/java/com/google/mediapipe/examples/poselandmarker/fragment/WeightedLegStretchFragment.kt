@@ -59,6 +59,7 @@ class WeightedLegStretchFragment : Fragment(), PoseLandmarkerHelper.LandmarkerLi
     private var isLegExtended = false
     private var isRestingBetweenSets = false
     private var isTestCompleted = false
+    private var isTrainingStarted = false
 
     private var timer: CountDownTimer? = null
     private var totalAccuracyAccumulated = 0f
@@ -81,18 +82,24 @@ class WeightedLegStretchFragment : Fragment(), PoseLandmarkerHelper.LandmarkerLi
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         backgroundExecutor = Executors.newSingleThreadExecutor()
-        binding.viewFinder.post { setUpCamera() }
-        backgroundExecutor.execute {
-            poseLandmarkerHelper = PoseLandmarkerHelper(
-                context = requireContext(),
-                runningMode = RunningMode.LIVE_STREAM,
-                minPoseDetectionConfidence = viewModel.currentMinPoseDetectionConfidence,
-                minPoseTrackingConfidence = viewModel.currentMinPoseTrackingConfidence,
-                minPosePresenceConfidence = viewModel.currentMinPosePresenceConfidence,
-                currentDelegate = viewModel.currentDelegate,
-                poseLandmarkerHelperListener = this
-            )
+
+        binding.btnStartTraining.setOnClickListener {
+            binding.setupPanel.visibility = View.GONE
+            isTrainingStarted = true
+            binding.viewFinder.post { setUpCamera() }
+            backgroundExecutor.execute {
+                poseLandmarkerHelper = PoseLandmarkerHelper(
+                    context = requireContext(),
+                    runningMode = RunningMode.LIVE_STREAM,
+                    minPoseDetectionConfidence = viewModel.currentMinPoseDetectionConfidence,
+                    minPoseTrackingConfidence = viewModel.currentMinPoseTrackingConfidence,
+                    minPosePresenceConfidence = viewModel.currentMinPosePresenceConfidence,
+                    currentDelegate = viewModel.currentDelegate,
+                    poseLandmarkerHelperListener = this
+                )
+            }
         }
+
         binding.btnFinish.setOnClickListener {
             findNavController().navigate(R.id.home_fragment)
         }
@@ -144,7 +151,7 @@ class WeightedLegStretchFragment : Fragment(), PoseLandmarkerHelper.LandmarkerLi
 
     override fun onResults(resultBundle: PoseLandmarkerHelper.ResultBundle) {
         activity?.runOnUiThread {
-            if (_binding != null) {
+            if (_binding != null && isTrainingStarted) {
                 val results = resultBundle.results.first()
                 processLogic(results)
                 binding.overlay.setPoseResults(
@@ -299,6 +306,17 @@ class WeightedLegStretchFragment : Fragment(), PoseLandmarkerHelper.LandmarkerLi
         binding.overlay.updateTestInfo(currentRep, currentSet, "測試完成！", finalAccuracy, true, "次數", TOTAL_SETS)
         binding.resultPanel.visibility = View.VISIBLE
         binding.tvFinalResult.text = String.format(Locale.US, "總平均準確率: %.1f%%", finalAccuracy)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (isTrainingStarted) {
+            backgroundExecutor.execute {
+                if (this::poseLandmarkerHelper.isInitialized && poseLandmarkerHelper.isClose()) {
+                    poseLandmarkerHelper.setupPoseLandmarker()
+                }
+            }
+        }
     }
 
     override fun onPause() {

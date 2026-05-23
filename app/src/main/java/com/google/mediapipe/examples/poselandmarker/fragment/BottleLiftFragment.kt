@@ -70,6 +70,7 @@ class BottleLiftFragment : Fragment() {
     private var isLifting = false
     private var isRestingBetweenSets = false
     private var isTestCompleted = false
+    private var isTrainingStarted = false
 
     // 左右手獨立的水瓶偵測標記 (移除了時間容忍變數，改成終極鎖定法)
     private var isLeftBottleDetected = false
@@ -94,25 +95,30 @@ class BottleLiftFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         backgroundExecutor = Executors.newSingleThreadExecutor()
-        binding.viewFinder.post { setUpCamera() }
 
-        backgroundExecutor.execute {
-            poseLandmarkerHelper = PoseLandmarkerHelper(
-                context = requireContext(),
-                runningMode = RunningMode.LIVE_STREAM,
-                minPoseDetectionConfidence = viewModel.currentMinPoseDetectionConfidence,
-                minPoseTrackingConfidence = viewModel.currentMinPoseTrackingConfidence,
-                minPosePresenceConfidence = viewModel.currentMinPosePresenceConfidence,
-                currentDelegate = viewModel.currentDelegate,
-                poseLandmarkerHelperListener = poseListener
-            )
-            objectDetectorHelper = ObjectDetectorHelper(
-                context = requireContext(),
-                threshold = 0.4f, // 降低底層過濾門檻
-                runningMode = RunningMode.LIVE_STREAM,
-                currentDelegate = viewModel.currentDelegate,
-                objectDetectorListener = objectListener
-            )
+        binding.btnStartTraining.setOnClickListener {
+            binding.setupPanel.visibility = View.GONE
+            isTrainingStarted = true
+            binding.viewFinder.post { setUpCamera() }
+
+            backgroundExecutor.execute {
+                poseLandmarkerHelper = PoseLandmarkerHelper(
+                    context = requireContext(),
+                    runningMode = RunningMode.LIVE_STREAM,
+                    minPoseDetectionConfidence = viewModel.currentMinPoseDetectionConfidence,
+                    minPoseTrackingConfidence = viewModel.currentMinPoseTrackingConfidence,
+                    minPosePresenceConfidence = viewModel.currentMinPosePresenceConfidence,
+                    currentDelegate = viewModel.currentDelegate,
+                    poseLandmarkerHelperListener = poseListener
+                )
+                objectDetectorHelper = ObjectDetectorHelper(
+                    context = requireContext(),
+                    threshold = 0.4f, // 降低底層過濾門檻
+                    runningMode = RunningMode.LIVE_STREAM,
+                    currentDelegate = viewModel.currentDelegate,
+                    objectDetectorListener = objectListener
+                )
+            }
         }
 
         binding.btnFinish.setOnClickListener {
@@ -211,7 +217,7 @@ class BottleLiftFragment : Fragment() {
 
         override fun onResults(resultBundle: PoseLandmarkerHelper.ResultBundle) {
             activity?.runOnUiThread {
-                if (_binding != null) {
+                if (_binding != null && isTrainingStarted) {
                     val results = resultBundle.results.firstOrNull() ?: return@runOnUiThread
 
                     // 將影像的真實寬高傳入，以利座標比對
@@ -377,12 +383,14 @@ class BottleLiftFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        backgroundExecutor.execute {
-            if(this::poseLandmarkerHelper.isInitialized && poseLandmarkerHelper.isClose()) {
-                poseLandmarkerHelper.setupPoseLandmarker()
-            }
-            if(this::objectDetectorHelper.isInitialized && objectDetectorHelper.isClosed()) {
-                objectDetectorHelper.setupObjectDetector()
+        if (isTrainingStarted) {
+            backgroundExecutor.execute {
+                if (this::poseLandmarkerHelper.isInitialized && poseLandmarkerHelper.isClose()) {
+                    poseLandmarkerHelper.setupPoseLandmarker()
+                }
+                if (this::objectDetectorHelper.isInitialized && objectDetectorHelper.isClosed()) {
+                    objectDetectorHelper.setupObjectDetector()
+                }
             }
         }
     }
