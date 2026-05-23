@@ -153,7 +153,7 @@ class WalkingBFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
             parent.getChildAt(spinnerTotalIndex - 1).visibility = View.GONE
         }
         
-        (parent.getChildAt(0) as? TextView)?.text = "步行(B級)訓練設定"
+        (parent.getChildAt(0) as? TextView)?.text = "步行訓練設定"
         (parent.getChildAt(1) as? TextView)?.text = "每組行走時間 (2-5分鐘):"
     }
 

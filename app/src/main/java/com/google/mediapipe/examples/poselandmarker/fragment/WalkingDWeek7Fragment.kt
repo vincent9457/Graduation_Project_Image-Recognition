@@ -147,7 +147,7 @@ class WalkingDWeek7Fragment : Fragment(), PoseLandmarkerHelper.LandmarkerListene
             if (child is TextView) {
                 val text = child.text.toString()
                 if (text.contains("設定")) {
-                    child.text = "步行 (D級 Week7) 訓練"
+                    child.text = "步行訓練"
                 } else if (text.contains("單次")) {
                     child.text = "請選擇步行時間:"
                 } else if (text.contains("累計")) {

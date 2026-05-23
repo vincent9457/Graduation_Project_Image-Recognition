@@ -147,7 +147,7 @@ class WalkingCFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
             val child = parent.getChildAt(i)
             if (child is TextView) {
                 when (child.text.toString()) {
-                    "步行訓練設定" -> child.text = "步行(C級)訓練"
+                    "步行訓練設定" -> child.text = "步行訓練"
                     "單次起身行走時間 (5-10秒):" -> child.text = "目標：每組 10 分鐘，共 3 組"
                     "累計總行走時間 (60-120秒):" -> child.visibility = View.GONE
                 }

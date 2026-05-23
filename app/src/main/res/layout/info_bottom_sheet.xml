@@ -25,7 +25,8 @@
     android:padding="@dimen/bottom_sheet_padding"
     app:behavior_hideable="false"
     app:behavior_peekHeight="@dimen/bottom_sheet_peek_height"
-    app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+    app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
+    android:visibility="gone">
 
     <androidx.appcompat.widget.LinearLayoutCompat
         android:layout_width="match_parent"

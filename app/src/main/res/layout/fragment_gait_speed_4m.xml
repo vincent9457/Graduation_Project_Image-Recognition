@@ -19,7 +19,7 @@
         android:id="@+id/tvCenterStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="#FFFF00"
+        android:textColor="#FF8A65"
         android:textSize="80sp"
         android:textStyle="bold"
         android:shadowColor="#000000"
@@ -44,6 +44,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            app:cornerRadius="10dp"
             android:text="重新測試(重設身高)" />
 
         <Button
@@ -51,6 +52,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
+            app:cornerRadius="10dp"
+            app:backgroundTint="#b22222"
             android:text="無法執行" />
     </LinearLayout>
 

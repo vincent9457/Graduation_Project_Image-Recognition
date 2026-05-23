@@ -100,7 +100,8 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
         pointPaint.strokeWidth = LANDMARK_STROKE_WIDTH
         pointPaint.style = Paint.Style.FILL
 
-        textPaint.color = Color.WHITE
+//        textPaint.color = Color.WHITE
+        textPaint.color = Color.parseColor("#b0e0e6")
         textPaint.textSize = 64f
         textPaint.strokeWidth = 2f
         textPaint.style = Paint.Style.FILL_AND_STROKE
@@ -209,7 +210,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
 
         // --- 繪製文字 UI ---
         if (currentRunningMode != RunningMode.IMAGE) {
-            val startY = 450f
+            val startY = 250f
             val lineSpacing = 100f
             var currentY = startY
 
