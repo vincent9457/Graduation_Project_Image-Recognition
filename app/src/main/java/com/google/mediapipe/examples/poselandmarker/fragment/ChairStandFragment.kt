@@ -175,8 +175,20 @@ class ChairStandFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
     }
 
     private fun processLogic(results: PoseLandmarkerResult) {
-        if (isTestCompleted || results.landmarks().isEmpty() || isRestingBetweenSets) return
+        if (isTestCompleted || results.landmarks().isEmpty()) return
 
+        // 如果正在休息，更新 UI 後返回，不進行動作偵測
+        if (isRestingBetweenSets) {
+            binding.overlay.updateTestInfo(
+                currentRep,
+                currentSet,
+                currentTimerStatusText,
+                calculateAvgAccuracy(),
+                isTestCompleted,
+                "次數"
+            )
+            return
+        }
         val landmarks = results.landmarks()[0]
         
         // 1. 可見度檢查 (肩膀、髖部、膝蓋)
@@ -246,15 +258,18 @@ class ChairStandFragment : Fragment(), PoseLandmarkerHelper.LandmarkerListener {
 
     private fun startSetRestTimer() {
         isRestingBetweenSets = true
+        val initialSec = SET_REST_TIME_MS / 1000
+        currentTimerStatusText = "組間休息 (${initialSec}s)" // 立即設定文字，避免 UI 閃爍或卡住
         timer?.cancel()
         timer = object : CountDownTimer(SET_REST_TIME_MS, 1000) {
             override fun onTick(ms: Long) {
-                currentTimerStatusText = "組間休息 (${ms/1000}s)"
+                currentTimerStatusText = "組間休息 (${ms / 1000}s)"
             }
             override fun onFinish() {
                 isRestingBetweenSets = false
                 currentSet++
                 currentRep = 0
+                currentTimerStatusText = "請起身" // 休息結束後的初始文字
             }
         }.start()
     }
