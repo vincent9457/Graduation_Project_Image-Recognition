@@ -19,7 +19,7 @@
         android:id="@+id/tvCenterStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="#FFFF00"
+        android:textColor="#FF8A65"
         android:textSize="80sp"
         android:textStyle="bold"
         android:shadowColor="#000000"
